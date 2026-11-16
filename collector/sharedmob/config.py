@@ -1,6 +1,8 @@
 """Konfiguration: config.toml (Struktur) + Umgebungsvariablen (Pfade, Geheimnisse)."""
 from __future__ import annotations
 
+import logging
+import math
 import os
 import tomllib
 from dataclasses import dataclass, field
@@ -42,7 +44,7 @@ class Config:
     position_providers: list[str] = field(default_factory=list)
     auto_churn_threshold: float = 0.5
     # Speicher
-    hot_days: int = 21
+    hot_days: int = 4
     raw_every_min: int = 60
     raw_keep_local_days: int = 30
     archive_hour: int = 1
@@ -67,6 +69,11 @@ class Config:
     @property
     def backup_dir(self) -> Path:
         return self.data_dir / "backups"
+
+
+def min_hot_days(trip_link_max_h: float) -> int:
+    """Arbeits-DB muss Fahrten über einen Neustart verknüpfen können (trip_link_max_h) + den Vortag fürs Archiv."""
+    return math.ceil(trip_link_max_h / 24) + 1
 
 
 def load_config(path: str | os.PathLike | None = None, env: dict | None = None) -> Config:
@@ -98,7 +105,7 @@ def load_config(path: str | os.PathLike | None = None, env: dict | None = None) 
             sc.auth = auth_email
         if sc.enabled:
             sources.append(sc)
-    return Config(
+    cfg = Config(
         interval_s=max(30, int(c.get("interval_s", 60))),
         night_interval_s=max(30, int(c.get("night_interval_s", 60))),
         night_from_hour=int(c.get("night_from_hour", 1)),
@@ -110,7 +117,7 @@ def load_config(path: str | os.PathLike | None = None, env: dict | None = None) 
         id_strategy=str(t.get("id_strategy", "auto")),
         position_providers=list(t.get("position_providers", [])),
         auto_churn_threshold=float(t.get("auto_churn_threshold", 0.5)),
-        hot_days=int(s.get("hot_days", 21)),
+        hot_days=int(s.get("hot_days", 4)),
         raw_every_min=int(s.get("raw_every_min", 60)),
         raw_keep_local_days=int(s.get("raw_keep_local_days", 30)),
         archive_hour=int(s.get("archive_hour", 1)),
@@ -119,3 +126,9 @@ def load_config(path: str | os.PathLike | None = None, env: dict | None = None) 
         data_dir=Path(env.get("DATA_DIR", "data")),
         web_token=env.get("WEB_TOKEN", ""),
     )
+    lo = min_hot_days(cfg.trip_link_max_h)
+    if cfg.hot_days < lo:
+        logging.getLogger(__name__).warning(
+            "hot_days=%d ist zu klein (Fahrten bis %g h müssen verknüpfbar bleiben) – verwende %d", cfg.hot_days, cfg.trip_link_max_h, lo)
+        cfg.hot_days = lo
+    return cfg

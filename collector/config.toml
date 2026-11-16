@@ -16,7 +16,7 @@ id_strategy = "auto"       # auto: Anbieter mit ständig wechselnden IDs → Pos
 position_providers = []    # erzwingen, z. B. ["bird-*"]
 
 [storage]
-hot_days = 21              # so viele Tage bleiben in der Arbeits-DB (Archiv: unbegrenzt)
+hot_days = 4               # Tage in der Arbeits-DB (Minimum: trip_link_max_h/24 + 1). Das Archiv bleibt vollständig.
 raw_every_min = 360        # Rohfeed alle 6 h komprimiert ablegen (0 = aus)
 raw_keep_local_days = 0    # Rohdaten lokal löschen nach N Tagen (0 = nie; Google Drive behält sie)
 archive_hour = 2           # ab dieser Stunde wird der Vortag nach Parquet archiviert

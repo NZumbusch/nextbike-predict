@@ -109,3 +109,14 @@ def test_nextbike_source_types_from_full_feed(fake):
     snap2 = src.poll(1060)
     assert "bikes=false" in fake.calls[1][0]
     assert next(v for v in snap2.vehicles if v.vehicle_id == first["bike_numbers"][0]).vehicle_type == "183"
+
+
+def test_hot_days_minimum(tmp_path):
+    from sharedmob.config import load_config
+
+    cfgfile = tmp_path / "c.toml"
+    cfgfile.write_text("[storage]\nhot_days = 1\n[tracking]\ntrip_link_max_h = 72\n")
+    assert load_config(cfgfile, env={}).hot_days == 4
+    cfgfile.write_text("[storage]\nhot_days = 10\n")
+    assert load_config(cfgfile, env={}).hot_days == 10
+    assert load_config(tmp_path / "fehlt.toml", env={}).hot_days == 4

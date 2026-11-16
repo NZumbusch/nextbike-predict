@@ -94,7 +94,7 @@ der Feed unverändert (gleiches `last_updated`), wird nichts geschlossen.
 
 ```
 data/
-  hot/sharedmob.sqlite                         Arbeits-DB: letzte 21 Tage + alle offenen Zustände
+  hot/sharedmob.sqlite                         Arbeits-DB: letzte 4 Tage + alle offenen Zustände
   archive/<tabelle>/date=JJJJ-MM-TT/part-0.parquet   ← dein Analyse-Datensatz (unveränderlich, zstd)
   archive/open/*.parquet, archive/dim/*.parquet      offene Zustände, Stammdaten (täglich aktualisiert)
   raw/JJJJ-MM-TT/HHMM_<quelle>_<feed>.json.zst      Rohfeed alle 6 h (zum Nachrechnen)
@@ -111,7 +111,7 @@ Datenmengen (Messung siehe [unten](#gemessene-werte)):
 | Download aus dem Internet (1 Abruf/Min) | ≈ 1.6 GB | – |
 | Parquet-Archiv | ≈ 5–8 MB | ≈ 2–3 GB |
 | Rohdaten (alle 6 h) | ≈ 3.7 MB | ≈ 1.4 GB |
-| Arbeits-DB | – | bleibt bei ≈ 0.5–1 GB |
+| Arbeits-DB (4 Tage) | – | bleibt bei ≈ 150 MB |
 
 Mit Archiv und Rohdaten zusammen sind das etwa 4 GB pro Jahr. Die 15 GB von Google Drive reichen damit mehrere Jahre.
 
@@ -287,7 +287,7 @@ docker compose up -d
 | `tracking.round_trip_min_s` | 300 | so lange weg + zurück am selben Ort ⇒ Rundfahrt |
 | `tracking.trip_link_max_h` | 72 | länger verschwunden ⇒ keine Fahrt (Werkstatt, Depot) |
 | `tracking.id_strategy` | `auto` | `id`, `position` oder `auto` (automatische Erkennung) |
-| `storage.hot_days` | 21 | Tage in der Arbeits-DB |
+| `storage.hot_days` | 4 | Tage in der Arbeits-DB. Mindestens `trip_link_max_h / 24 + 1`, damit Fahrten über einen Neustart verknüpft bleiben und der Vortag archiviert werden kann. Kleinere Werte werden automatisch angehoben. |
 | `storage.raw_every_min` | 360 | Rohfeed alle 6 h (`0` = aus) |
 | `storage.archive_hour` | 2 | ab dieser Stunde wird der Vortag archiviert |
 | `sources[].providers_exclude` | `[]` | Anbieter auslassen, z. B. `["mobility"]` |
