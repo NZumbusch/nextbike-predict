@@ -177,19 +177,54 @@ class Tracker:
             self.prev_raw_ids[prov] = raw
             mode = self.mode_for(prov)
             if mode == "pos":
-                seen: dict[str, int] = defaultdict(int)
-                for v in sorted(items, key=lambda x: (x.lat or 0, x.lon or 0, x.vehicle_type or "", x.vehicle_id)):
-                    if v.lat is None or v.lon is None:
-                        continue
-                    base = f"@{v.lat:.5f},{v.lon:.5f},{v.vehicle_type or ''}"
-                    k = seen[base]
-                    seen[base] += 1
-                    cur[(prov, f"{base}#{k}")] = (v, "pos")
+                cur.update(self._position_keys(prov, items))
             else:
                 for v in items:
                     cur.setdefault((prov, v.vehicle_id), (v, "id"))
             ch.provider_stats.append([ch.obs_ts, self.source, prov, mode, len(items), new_ids, gone_ids, 0, 0])
         return cur
+
+    def _position_keys(self, prov: str, items: list[VehicleObs]) -> dict[VKey, tuple[VehicleObs, str]]:
+        """Positions-Identität mit Toleranz: Jedes Fahrzeug übernimmt den Schlüssel des nächsten offenen
+        Zustands (gleicher Typ) innerhalb von move_tolerance_m. GPS-Rauschen von wenigen Metern erzeugt so
+        keine Schein-Abfahrten/-Ankünfte. Nur wirklich neue Positionen erhalten einen neuen Schlüssel."""
+        cell = max(self.tol, 1.0) / 111_000  # Rastergrösse in Grad (Breite)
+
+        def cell_of(lat: float, lon: float) -> tuple[int, int]:
+            return int(lat // cell), int(lon * math.cos(math.radians(lat)) // cell)
+
+        grid: dict[tuple[int, int], list[tuple[VKey, OpenV]]] = defaultdict(list)
+        for key, o in self.open_v.items():
+            if key[0] == prov and key[1].startswith("@") and o.obs.lat is not None and o.obs.lon is not None:
+                grid[cell_of(o.obs.lat, o.obs.lon)].append((key, o))
+        claimed: set[VKey] = set()
+        out: dict[VKey, tuple[VehicleObs, str]] = {}
+        fresh: list[VehicleObs] = []
+        for v in sorted(items, key=lambda x: (x.lat or 0, x.lon or 0, x.vehicle_type or "", x.vehicle_id)):
+            if v.lat is None or v.lon is None:
+                continue
+            ci, cj = cell_of(v.lat, v.lon)
+            best, best_d = None, self.tol
+            for di in (-1, 0, 1):
+                for dj in (-1, 0, 1):
+                    for key, o in grid.get((ci + di, cj + dj), ()):
+                        if key in claimed or o.obs.vehicle_type != v.vehicle_type:
+                            continue
+                        d = haversine_m(o.obs.lat, o.obs.lon, v.lat, v.lon)
+                        if d is not None and d <= best_d:
+                            best, best_d = key, d
+            if best is not None:
+                claimed.add(best)
+                out[best] = (v, "pos")
+            else:
+                fresh.append(v)
+        for v in fresh:  # neue Positionen: eindeutigen Schlüssel vergeben
+            base = f"@{v.lat:.5f},{v.lon:.5f},{v.vehicle_type or ''}"
+            k = 0
+            while (prov, f"{base}#{k}") in self.open_v or (prov, f"{base}#{k}") in out:
+                k += 1
+            out[(prov, f"{base}#{k}")] = (v, "pos")
+        return out
 
     # ---------------------------------------------------------------- Schritt
     def apply(self, snap: Snapshot) -> Changes | None:

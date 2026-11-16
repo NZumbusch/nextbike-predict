@@ -163,3 +163,23 @@ def test_single_reshuffle_keeps_id_tracking():
     assert trips(ch)[0]["kind"] == "ride"
     t.apply(snap(T0 + 2 * 86400, fleet("c")))          # nächste Neuvergabe erst nach > 24 h
     assert t.mode_for("velo") == "id"
+
+
+def test_position_mode_tolerates_gps_jitter():
+    """Bird/Lime: Positionen schwanken um wenige Meter – darf keine Abfahrt/Ankunft erzeugen."""
+    t = Tracker("src", id_strategy="position", move_tolerance_m=25)
+    fleet = [V(f"x{i}", lat=47 + i * 0.01, prov="b") for i in range(10)]
+    t.apply(snap(T0, fleet))
+    jitter = [V(f"y{i}", lat=47 + i * 0.01 + 0.00002, lon=8.00003, prov="b") for i in range(10)]  # ≈ 3 m
+    ch = t.apply(snap(T0 + 60, jitter))
+    assert not ch.v_open and not ch.v_close
+    moved = jitter[:9] + [V("z", lat=47.2, prov="b")]  # eins wirklich weg, eins neu
+    ch = t.apply(snap(T0 + 120, moved))
+    assert len(ch.v_close) == 1 and len(ch.v_open) == 1
+
+
+def test_position_mode_two_vehicles_same_spot():
+    t = Tracker("src", id_strategy="position")
+    t.apply(snap(T0, [V("1", prov="q"), V("2", prov="q")]))
+    ch = t.apply(snap(T0 + 60, [V("3", prov="q", lat=47.00001), V("4", prov="q")]))
+    assert not ch.v_open and not ch.v_close
