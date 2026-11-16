@@ -62,15 +62,20 @@ def validate(con, args) -> None:
         return
     con.register("rec", rec)
     con.register("truth", truth)
-    hit = con.sql("""
+    hit = con.execute("""
         SELECT count(DISTINCT t.rowid) FROM (SELECT row_number() OVER () AS rowid, * FROM truth) t
-        JOIN rec r ON abs(r.dep_ts - t.dep_ts) <= 120 AND abs(r.arr_ts - t.arr_ts) <= 120
+        JOIN rec r ON abs(r.dep_ts - t.dep_ts) <= 300 AND abs(r.arr_ts - t.arr_ts) <= 300
           AND abs(r.from_lat - t.from_lat) < 0.0005 AND abs(r.from_lon - t.from_lon) < 0.0007
           AND abs(r.to_lat - t.to_lat) < 0.0005 AND abs(r.to_lon - t.to_lon) < 0.0007
     """).fetchone()[0]
     print(f"nextbike_ch – exakte Fahrten (direkte Quelle): {len(truth)}")
     print(f"rekonstruiert aus rotierenden IDs:           {len(rec)}")
-    print(f"davon richtig (Start/Ziel ±50 m, Zeit ±2 min): {hit}")
+    lag = con.execute("""
+        SELECT median(r.dep_ts - t.dep_ts) FROM truth t JOIN rec r
+          ON abs(r.from_lat - t.from_lat) < 0.0005 AND abs(r.from_lon - t.from_lon) < 0.0007 AND abs(r.dep_ts - t.dep_ts) <= 600
+    """).fetchone()[0]
+    print(f"davon richtig (Start/Ziel ±50 m, Zeit ±5 min): {hit}")
+    print(f"Verzögerung des Aggregators (Median):          {lag or 0:.0f} s")
     print(f"Trefferquote (Recall):    {hit / len(truth):.0%}")
     print(f"Genauigkeit (Precision):  {hit / len(rec):.0%}")
 

@@ -113,7 +113,7 @@ Datenmengen (Messung siehe [unten](#gemessene-werte)):
 
 | | pro Tag | pro Jahr |
 |---|---|---|
-| Download aus dem Internet (1 Abruf/Min) | ≈ 1.6 GB | – |
+| Download aus dem Internet (1 Abruf/Min) | ≈ 1.7 GB | – |
 | Parquet-Archiv | ≈ 5–8 MB | ≈ 2–3 GB |
 | Rohdaten (alle 6 h) | ≈ 3.7 MB | ≈ 1.4 GB |
 | Arbeits-DB (4 Tage) | – | bleibt bei ≈ 150 MB |
@@ -410,4 +410,26 @@ analysis/        DuckDB-Sichten, Beispiele
 
 ## Gemessene Werte
 
-*(werden nach dem Testlauf ergänzt)*
+Testlauf am echten Feed, Montag 16.11.2026, 16:45–17:20 Uhr (Abendspitze), beide Quellen, 1-Min-Takt:
+
+| Messgrösse | Wert |
+|---|---|
+| Fahrzeuge / Stationen im Feed | ≈ 24 300 / ≈ 13 050 (sharedmobility + nextbike) |
+| neue Fahrzeug-Zustände | ≈ 165 pro Minute (Spitze) |
+| Stationsänderungen | ≈ 73 pro Minute (Spitze) |
+| Fahrten mit gleicher ID | ≈ 13 pro Minute, davon nextbike-Ausleihen ≈ 6 pro Minute |
+| Download | 1.2 MB pro Minute ⇒ ≈ 1.7 GB pro Tag |
+| Abruf + Verarbeitung | sharedmobility ≈ 2.5 s (davon ≈ 0.1–0.3 s Verarbeitung), nextbike ≈ 1 s |
+| RAM / CPU des Sammlers | ≈ 230 MB / ≈ 1–2 % im Mittel |
+| Parquet pro Zeile | Fahrzeug-Zustand ≈ 40 Byte, Stationsänderung ≈ 12 Byte, Fahrt ≈ 73 Byte |
+| Rohdaten pro Snapshot (zstd) | ≈ 0.9 MB (7 MB + 2.5 MB unkomprimiert) |
+
+Hochgerechnet auf einen Tag (Nacht deutlich ruhiger): **≈ 7 MB Parquet + 3.7 MB Rohdaten pro Tag ≈ 4 GB pro Jahr**.
+
+**Fahrten bei rotierenden IDs** (`analysis/match_rotating.py --validate`, gleicher Testlauf): Der Aggregator
+liefert nextbike mit ≈ 2 min Verzögerung und rotierenden IDs. Die einfache Zuordnung Abfahrt → Ankunft trifft
+**≈ 25 %** der exakten Fahrten aus der direkten Quelle, bei einer Genauigkeit von ≈ 22 %. Einzelfahrten lassen sich bei
+rotierenden IDs also nur unsicher rekonstruieren. Für Fragen auf Fahrt-Ebene sind nextbike direkt und Anbieter mit
+stabilen IDs die Basis. Für die übrigen Anbieter eignen sich aggregierte Ströme (Abfahrten/Ankünfte pro Gebiet und Zeit).
+Die Messung über ganze Tage sowie bessere Modelle (Dauer abhängig von der Distanz, optimale statt gieriger Zuordnung)
+sind ein sinnvoller erster Analyse-Schritt.
