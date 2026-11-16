@@ -42,10 +42,12 @@ describe("Auth", () => {
       expect((await get(p, env, "falsch")).status, p).toBe(401);
     }
   });
-  it("?token= nur für die HTML-Seite", async () => {
+  it("?token= nur für HTML-Seite und Export-Downloads", async () => {
     const env = { DB: explodingDb, API_TOKEN: TOKEN };
-    expect((await get(`/now?token=${TOKEN}`, env)).status).toBe(401);
-    expect((await get(`/export?table=obs&token=${TOKEN}`, env)).status).toBe(401);
+    for (const p of ["/now", "/predict?station=home", "/plan"]) expect((await get(`${p}${p.includes("?") ? "&" : "?"}token=${TOKEN}`, env)).status, p).toBe(401);
+    expect((await get(`/export?table=obs&token=falsch`, env)).status).toBe(401);
+    const db = createD1();
+    expect((await get(`/export?table=obs&token=${TOKEN}`, { DB: db, API_TOKEN: TOKEN })).status).toBe(200);
   });
   it("ohne gesetztes Secret wird alles abgelehnt", async () => {
     expect((await get("/now", { DB: explodingDb }, "")).status).toBe(401);
@@ -105,7 +107,7 @@ describe("Endpunkte", () => {
     const html = await r.text();
     expect(html).toContain("Neustadtstrasse 10");
     expect(html).not.toContain(TOKEN);
-    expect(html).not.toMatch(/<script src|<link /);
+    expect(html).not.toMatch(/<script src|<link |https?:\/\//);
   });
 
   it("Cache: zweiter Aufruf liest D1 nicht erneut", async () => {

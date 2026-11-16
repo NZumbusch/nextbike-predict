@@ -60,6 +60,15 @@ ${stale}${err}
 <table><tr><th style="text-align:left">Station</th><th>Velos</th><th>davon E</th></tr>${nowRows}</table>
 <h2>Prognose: Chance auf ≥ 1 Velo</h2>
 <div class="scroll"><table><tr><th></th>${head}</tr>${progRows}</table></div>
+<h2>Daten herunterladen (CSV)</h2>
+<p class="dl"><a data-t="obs">Rohdaten eigene Stationen</a> · <a data-t="agg">Aggregate</a> · <a data-t="stations">Stationen</a> · <a data-t="snap" data-day="1">Netz-Snapshots letzte 24 h</a></p>
+<p><small>Vollständiger Export aller Seiten: <code>npm run export</code> (siehe README).</small></p>
+<script>
+(function(){var t=new URLSearchParams(location.search).get("token")||"";
+document.querySelectorAll("a[data-t]").forEach(function(a){var q="table="+a.dataset.t;
+if(a.dataset.day)q+="&cursor="+(Math.floor(Date.now()/1000)-86400);
+a.href="/export?"+q+"&token="+encodeURIComponent(t);});})();
+</script>
 <footer>Anteil historischer Beobachtungen (gleicher Wochentag, ±15 Min) mit ≥ 1 Velo · Ø = durchschnittliche Anzahl · n = Beobachtungen · – = zu wenig Daten</footer>
 </body></html>`;
 }

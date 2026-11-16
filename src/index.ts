@@ -20,9 +20,9 @@ const unauthorized = () =>
 
 export async function handleFetch(req: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
   const url = new URL(req.url);
-  // 1) Auth zuerst – vor jedem D1-Zugriff. ?token= nur für die HTML-Seite.
-  const isHtml = url.pathname === "/";
-  if (!(await isAuthorized(req, url, env.API_TOKEN, isHtml))) return unauthorized();
+  // 1) Auth zuerst – vor jedem D1-Zugriff. ?token= nur für die HTML-Seite und deren Download-Links.
+  const allowQuery = url.pathname === "/" || url.pathname === "/export";
+  if (!(await isAuthorized(req, url, env.API_TOKEN, allowQuery))) return unauthorized();
 
   if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "method not allowed" }, 405);
   const now = Date.now();
