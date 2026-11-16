@@ -1,0 +1,23 @@
+{
+  "name": "nextbike-predict",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Velo-Verfügbarkeits-Tracker mit Prognose für nextbike Luzern (Cloudflare Worker + D1)",
+  "scripts": {
+    "dev": "wrangler dev --test-scheduled",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply nextbike --local",
+    "db:migrate:remote": "wrangler d1 migrations apply nextbike --remote",
+    "simulate-cron": "bash scripts/simulate-cron.sh",
+    "export": "node scripts/export.mjs"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261116.1",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.7",
+    "wrangler": "^4.163.0"
+  }
+}

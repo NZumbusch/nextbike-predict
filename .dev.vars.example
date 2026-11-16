@@ -1,0 +1,3 @@
+# Kopieren nach .dev.vars (wird NICHT committed) – nur für lokales `wrangler dev`.
+# In Produktion: `npx wrangler secret put API_TOKEN`
+API_TOKEN=lokaler-test-token-bitte-aendern

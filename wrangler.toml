@@ -1,0 +1,25 @@
+name = "nextbike-predict"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+# Kein workers_dev-Preview-URL-Zwang; workers.dev bleibt aktiv, damit die Seite ohne eigene Domain läuft.
+workers_dev = true
+
+# 1 Cron Trigger (Free Plan: max. 5 pro Account). Alle 5 Minuten, UTC.
+[triggers]
+crons = ["*/5 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "nextbike"
+# Nach `npx wrangler d1 create nextbike` die ausgegebene ID hier eintragen:
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+[vars]
+# Wie lange die kompakten Netz-Snapshots (alle Stationen Luzern) behalten werden. 0 = für immer.
+SNAPSHOT_RETENTION_DAYS = "365"
+# Rohdaten der eigenen Stationen: danach in die Aggregattabelle verdichten.
+RAW_RETENTION_DAYS = "60"
+
+[observability]
+enabled = true
