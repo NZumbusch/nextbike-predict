@@ -12,6 +12,8 @@ interface TableDef {
   key: string[];
   maxLimit: number;
   defLimit: number;
+  /** Cursor ist Text (z. B. Velonummer) statt Zahl */
+  textKey?: boolean;
 }
 
 const TABLES: Record<string, TableDef> = {
@@ -22,7 +24,10 @@ const TABLES: Record<string, TableDef> = {
     maxLimit: 5000,
     defLimit: 5000,
   },
-  // Ein Snapshot ≈ 2 KB ⇒ 288 Zeilen = 1 Tag ≈ 0.6 MB
+  // Änderungs-Log: Deltas sind klein (≈ 0.1–1 KB), Keyframes ≈ 6 KB ⇒ 1440 Zeilen ≈ 1 Tag
+  log: { cols: ["ts", "prev_ts", "kind", "n_st", "n_bk", "st", "bk"], key: ["ts"], maxLimit: 3000, defLimit: 1440 },
+  bikes: { cols: ["number", "type", "first_seen", "last_seen"], key: ["number"], maxLimit: 5000, defLimit: 5000, textKey: true },
+  // v1-Snapshots (werden nicht mehr beschrieben). Ein Snapshot ≈ 1.5 KB
   snap: { cols: ["ts", "n_stations", "total_bikes", "total_ebikes", "free_floating", "booked", "data"], key: ["ts"], maxLimit: 1000, defLimit: 288 },
   stations: { cols: ["uid", "number", "name", "lat", "lng", "place_type", "first_seen", "last_seen"], key: ["uid"], maxLimit: 5000, defLimit: 5000 },
 };
@@ -41,10 +46,12 @@ export async function handleExport(env: Env, url: URL): Promise<Response> {
   const limit = Number.isInteger(limRaw) && limRaw > 0 ? Math.min(limRaw, def.maxLimit) : def.defLimit;
   const cursorRaw = url.searchParams.get("cursor");
   let where = "";
-  let binds: number[] = [];
+  let binds: (number | string)[] = [];
   if (cursorRaw) {
-    binds = cursorRaw.split(",").map(Number);
-    if (binds.length !== def.key.length || binds.some((x) => !Number.isInteger(x))) throw new HttpError(400, "ungültiger cursor");
+    const parts = cursorRaw.split(",");
+    binds = def.textKey ? parts : parts.map(Number);
+    const bad = def.textKey ? parts.some((x) => x.length === 0 || x.length > 40) : (binds as number[]).some((x) => !Number.isInteger(x));
+    if (binds.length !== def.key.length || bad) throw new HttpError(400, "ungültiger cursor");
     const ph = def.key.map((_, i) => `?${i + 1}`).join(", ");
     where = def.key.length === 1 ? `WHERE ${def.key[0]} > ?1` : `WHERE (${def.key.join(", ")}) > (${ph})`;
   }

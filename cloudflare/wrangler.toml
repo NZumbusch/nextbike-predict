@@ -4,9 +4,10 @@ compatibility_date = "2025-09-01"
 # Kein workers_dev-Preview-URL-Zwang; workers.dev bleibt aktiv, damit die Seite ohne eigene Domain läuft.
 workers_dev = true
 
-# 1 Cron Trigger (Free Plan: max. 5 pro Account). Alle 5 Minuten, UTC.
+# 1 Cron Trigger (Free Plan: max. 5 pro Account). Feuert jede Minute; der Code entscheidet,
+# ob abgerufen wird (tagsüber jede Minute, nachts alle 5 Min – siehe src/config.ts).
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["* * * * *"]
 
 [[d1_databases]]
 binding = "DB"
@@ -16,7 +17,11 @@ database_id = "00000000-0000-0000-0000-000000000000"
 migrations_dir = "migrations"
 
 [vars]
-# Wie lange die kompakten Netz-Snapshots (alle Stationen Luzern) behalten werden. 0 = für immer.
+# Änderungs-Log (alle Stationen + Einzelvelos): Aufbewahrung in Tagen. 0 = für immer
+# (Schutz: ab DB_SIZE_LIMIT_MB werden automatisch die ältesten 30 Tage gelöscht – vorher exportieren!).
+LOG_RETENTION_DAYS = "0"
+DB_SIZE_LIMIT_MB = "450"
+# Alte v1-Snapshots (Tabelle snap, wird nicht mehr beschrieben). 0 = für immer.
 SNAPSHOT_RETENTION_DAYS = "365"
 # Rohdaten der eigenen Stationen: danach in die Aggregattabelle verdichten.
 RAW_RETENTION_DAYS = "60"

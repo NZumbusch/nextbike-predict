@@ -25,7 +25,10 @@ class Stmt {
     return { success: true, meta: { changes: Number(r.changes) }, results: [] };
   }
   runSync() {
-    return this.db.prepare(this.sql).run(...this.conv());
+    const r = this.db.prepare(this.sql).run(...this.conv());
+    const ps = this.db.prepare("PRAGMA page_size").get() as { page_size: number };
+    const pc = this.db.prepare("PRAGMA page_count").get() as { page_count: number };
+    return { success: true, results: [], meta: { changes: Number(r.changes), size_after: ps.page_size * pc.page_count } };
   }
 }
 

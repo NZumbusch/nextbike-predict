@@ -2,7 +2,7 @@
  * HTTP-Handler (werden erst NACH erfolgreicher Auth aufgerufen).
  */
 import { findStation, MIN_OBS, PLAN_THRESHOLD, STATIONS, type Group, type StationConfig } from "./config";
-import { getMeta, latestSnap, loadStats, type Env, type LatestSnap } from "./db";
+import { getMeta, loadStats, readCurrent, type Current, type Env } from "./db";
 import { predict, recommend, type Prediction } from "./predict";
 import { formatZurich, neighborSlots, parseAt, type ParsedAt } from "./time";
 
@@ -27,14 +27,21 @@ const stationInfo = (s: StationConfig) => ({
   ...(s.distance_m ? { distance_m: s.distance_m } : {}),
 });
 
-function nowView(snap: LatestSnap | null, nowMs: number) {
-  if (!snap) return { as_of: null, age_s: null, stale: true, stations: STATIONS.map((s) => ({ ...stationInfo(s), bikes: null, ebikes: null })) };
+function nowView(snap: Current | null, nowMs: number) {
+  if (!snap) return { as_of: null, age_s: null, stale: true, network: null, stations: STATIONS.map((s) => ({ ...stationInfo(s), bikes: null, ebikes: null })) };
   const age = Math.round(nowMs / 1000 - snap.ts);
   return {
     as_of: formatZurich(snap.ts * 1000),
     as_of_utc: new Date(snap.ts * 1000).toISOString(),
     age_s: age,
     stale: age > 15 * 60,
+    network: {
+      stations: snap.byId.size,
+      bikes_at_stations: snap.total_bikes,
+      free_floating: snap.free_floating,
+      visible_bikes: snap.visible_bikes,
+      db_mb: snap.db_bytes ? Math.round(snap.db_bytes / 1e5) / 10 : null,
+    },
     stations: STATIONS.map((s) => {
       const v = snap.byId.get(s.id);
       return { ...stationInfo(s), bikes: v?.bikes ?? null, ebikes: v?.ebikes ?? null, ...(v && !v.active ? { inactive: true } : {}) };
@@ -43,7 +50,7 @@ function nowView(snap: LatestSnap | null, nowMs: number) {
 }
 
 export async function handleNow(env: Env, nowMs: number): Promise<Response> {
-  return json(nowView(await latestSnap(env.DB), nowMs));
+  return json(nowView(await readCurrent(env.DB), nowMs));
 }
 
 function atView(at: ParsedAt) {
@@ -75,7 +82,7 @@ export async function handlePlan(env: Env, url: URL, nowMs: number): Promise<Res
   const group = dirRaw as Group;
   const at = parseAtOr400(url.searchParams.get("at"), nowMs);
   const members = STATIONS.filter((s) => s.group === group).sort((a, b) => Number(b.primary) - Number(a.primary));
-  const [stats, snap] = await Promise.all([loadStats(env.DB, members.map((s) => s.id), neighborSlots(at.wslot)), latestSnap(env.DB)]);
+  const [stats, snap] = await Promise.all([loadStats(env.DB, members.map((s) => s.id), neighborSlots(at.wslot)), readCurrent(env.DB)]);
   const options = members.map((s) => ({ station: s, prediction: predict(stats.get(s.id), at.wslot, MIN_OBS) }));
   const now = nowView(snap, nowMs);
   return json({
@@ -109,7 +116,7 @@ export async function statusData(env: Env, nowMs: number, hours = 4, stepMin = 3
   const slots = columns.flatMap((c) => neighborSlots(c.wslot));
   const [stats, snap, errRaw] = await Promise.all([
     loadStats(env.DB, STATIONS.map((s) => s.id), slots),
-    latestSnap(env.DB),
+    readCurrent(env.DB),
     getMeta(env.DB, "last_error"),
   ]);
   let lastError: StatusData["lastError"] = null;

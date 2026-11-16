@@ -6,14 +6,17 @@
  *   NEXTBIKE_TOKEN=... node scripts/export.mjs [zielordner]
  *
  * Ergebnis (Standard: ./export/):
- *   obs.csv        Rohbeobachtungen eigener Stationen (letzte 60 Tage)
- *   agg.csv        verdichtete Statistik (Station × Wochen-Slot)
- *   stations.csv   Stammdaten aller Stationen (Name, Koordinaten)
- *   snap.csv       Netz-Snapshots roh (data = JSON) – wird inkrementell ergänzt
- *   snap_long.csv  Snapshots "lang": ts, zeit_utc, uid, bikes, ebikes, active – inkrementell
+ *   stations.csv, bikes.csv, agg.csv, obs.csv   jedes Mal komplett neu
+ *   log.csv               Änderungs-Log roh                          (inkrementell)
+ *   station_changes.csv   jede Bestandsänderung jeder Station        (inkrementell)
+ *   bike_events.csv       jede Bewegung jedes Velos                  (inkrementell)
+ *   trips.csv             Fahrten Ausleihe → Rückgabe                (inkrementell)
+ *   snap.csv / snap_long.csv   alte v1-Snapshots, falls vorhanden    (inkrementell)
+ *   .reconstruct-state.json    Zwischenstand für den nächsten inkrementellen Lauf
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
+import { applyRow, newState, parseCsvLine, BIKE_EVENTS_HEADER, STATION_CHANGES_HEADER, TRIPS_HEADER } from "./reconstruct.mjs";
 
 const base = (process.env.NEXTBIKE_URL ?? "").replace(/\/$/, "");
 const token = process.env.NEXTBIKE_TOKEN;
@@ -23,6 +26,7 @@ if (!base || !token) {
 }
 const out = process.argv[2] ?? "export";
 mkdirSync(out, { recursive: true });
+const file = (n) => join(out, n);
 
 async function page(table, cursor) {
   const u = new URL(`${base}/export`);
@@ -36,7 +40,7 @@ async function page(table, cursor) {
   }
 }
 
-/** Ganze Tabelle; ruft onPage(header, zeilen[]) pro Seite auf. */
+/** Ganze Tabelle; onPage(header, zeilen[]) pro Seite. */
 async function each(table, cursor, onPage) {
   let n = 0;
   do {
@@ -52,50 +56,82 @@ async function each(table, cursor, onPage) {
   return n;
 }
 
-// Kleine Tabellen: komplett neu schreiben
-for (const t of ["stations", "agg", "obs"]) {
-  const file = join(out, `${t}.csv`);
+function lastTs(path) {
+  if (!existsSync(path)) return null;
+  const rows = readFileSync(path, "utf8").trimEnd().split("\n");
+  const v = rows[rows.length - 1]?.split(",")[0];
+  return v && /^\d+$/.test(v) ? v : null;
+}
+
+const csv = (rows) => rows.map((r) => r.map((v) => (/[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : v)).join(",")).join("\n") + "\n";
+
+// 1) Kleine Tabellen komplett
+const coords = new Map();
+const types = new Map();
+for (const t of ["stations", "bikes", "agg", "obs"]) {
   let first = true;
   await each(t, null, (header, lines) => {
-    if (first) writeFileSync(file, header + "\n");
+    if (first) writeFileSync(file(`${t}.csv`), header + "\n");
     first = false;
-    if (lines.length) appendFileSync(file, lines.join("\n") + "\n");
+    if (!lines.length) return;
+    appendFileSync(file(`${t}.csv`), lines.join("\n") + "\n");
+    for (const l of lines) {
+      const f = parseCsvLine(l);
+      if (t === "stations" && f[3] !== "") coords.set(Number(f[0]), [Number(f[3]), Number(f[4])]);
+      if (t === "bikes" && f[1]) types.set(f[0], f[1]);
+    }
   });
 }
 
-// Snapshots: inkrementell ab letztem vorhandenen ts
-const snapFile = join(out, "snap.csv");
-const longFile = join(out, "snap_long.csv");
-let since = null;
-if (existsSync(snapFile)) {
-  const rows = readFileSync(snapFile, "utf8").trimEnd().split("\n");
-  const last = rows[rows.length - 1]?.split(",")[0];
-  if (last && /^\d+$/.test(last)) since = last;
+// 2) Änderungs-Log inkrementell + Rekonstruktion
+const stateFile = file(".reconstruct-state.json");
+const since = lastTs(file("log.csv"));
+let state = since && existsSync(stateFile) ? JSON.parse(readFileSync(stateFile, "utf8")) : null;
+if (!state || !since) {
+  state = newState();
+  writeFileSync(file("station_changes.csv"), STATION_CHANGES_HEADER + "\n");
+  writeFileSync(file("bike_events.csv"), BIKE_EVENTS_HEADER + "\n");
+  writeFileSync(file("trips.csv"), TRIPS_HEADER + "\n");
 }
-if (!since) {
-  writeFileSync(longFile, "ts,zeit_utc,uid,bikes,ebikes,active\n");
-}
-let wroteHeader = !!since;
-
-/** CSV-Zeile mit genau einem gequoteten JSON-Feld am Ende parsen */
-function parseSnapLine(line) {
-  const i = line.indexOf(',"');
-  const head = line.slice(0, i).split(",");
-  const data = JSON.parse(line.slice(i + 2, -1).replace(/""/g, '"'));
-  return { ts: Number(head[0]), data };
-}
-
-await each("snap", since, (header, lines) => {
-  if (!wroteHeader) writeFileSync(snapFile, header + "\n");
-  wroteHeader = true;
+let logHeader = !!(since && state.ts);
+await each("log", logHeader ? since : null, (header, lines) => {
+  if (!logHeader) writeFileSync(file("log.csv"), header + "\n");
+  logHeader = true;
   if (!lines.length) return;
-  appendFileSync(snapFile, lines.join("\n") + "\n");
+  appendFileSync(file("log.csv"), lines.join("\n") + "\n");
+  const sc = [], ev = [], tr = [];
+  for (const l of lines) {
+    const f = parseCsvLine(l);
+    const row = { ts: Number(f[0]), prev_ts: f[1] === "" ? null : Number(f[1]), kind: f[2], st: JSON.parse(f[5]), bk: JSON.parse(f[6]) };
+    const o = applyRow(state, row, coords, types);
+    sc.push(...o.stationChanges);
+    ev.push(...o.events);
+    tr.push(...o.trips);
+  }
+  if (sc.length) appendFileSync(file("station_changes.csv"), csv(sc));
+  if (ev.length) appendFileSync(file("bike_events.csv"), csv(ev));
+  if (tr.length) appendFileSync(file("trips.csv"), csv(tr));
+  writeFileSync(stateFile, JSON.stringify(state));
+});
+
+// 3) Alte v1-Snapshots (falls vorhanden)
+const snapSince = lastTs(file("snap.csv"));
+let snapHeader = !!snapSince;
+await each("snap", snapSince, (header, lines) => {
+  if (!lines.length) return;
+  if (!snapHeader) {
+    writeFileSync(file("snap.csv"), header + "\n");
+    writeFileSync(file("snap_long.csv"), "ts,zeit_utc,uid,bikes,ebikes,active\n");
+    snapHeader = true;
+  }
+  appendFileSync(file("snap.csv"), lines.join("\n") + "\n");
   const long = [];
   for (const l of lines) {
-    const { ts, data } = parseSnapLine(l);
+    const f = parseCsvLine(l);
+    const ts = Number(f[0]);
     const iso = new Date(ts * 1000).toISOString();
-    for (const [uid, bikes, ebikes, active] of data) long.push(`${ts},${iso},${uid},${bikes},${ebikes},${active === 0 ? 0 : 1}`);
+    for (const [uid, bikes, ebikes, active] of JSON.parse(f[6])) long.push(`${ts},${iso},${uid},${bikes},${ebikes},${active === 0 ? 0 : 1}`);
   }
-  appendFileSync(longFile, long.join("\n") + "\n");
+  appendFileSync(file("snap_long.csv"), long.join("\n") + "\n");
 });
 console.log(`Fertig → ${out}/`);

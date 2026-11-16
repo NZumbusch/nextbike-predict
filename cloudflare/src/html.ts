@@ -58,6 +58,7 @@ td[style]{color:#111}.scroll{overflow-x:auto}.warn{color:#c50}footer{margin-top:
 ${stale}${err}
 <h2>Jetzt</h2>
 <table><tr><th style="text-align:left">Station</th><th>Velos</th><th>davon E</th></tr>${nowRows}</table>
+${d.now.network ? `<p><small>Netz: ${d.now.network.stations} Stationen · ${d.now.network.bikes_at_stations} Velos an Stationen · ${d.now.network.free_floating} frei abgestellt${d.now.network.db_mb !== null ? ` · DB ${d.now.network.db_mb} MB / 500 MB` : ""}</small></p>` : ""}
 <h2>Prognose: Chance auf ≥ 1 Velo</h2>
 <div class="scroll"><table><tr><th></th>${head}</tr>${progRows}</table></div>
 <h2>Daten herunterladen (CSV)</h2>

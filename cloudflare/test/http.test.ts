@@ -1,17 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import fixture from "./fixtures/feed-luzern.json";
 import { createD1 } from "./d1-shim";
 import { handleFetch } from "../src/index";
-import { writeRun } from "../src/db";
-import { parseFeed } from "../src/feed";
-import { CITY_ID, STATIONS } from "../src/config";
+import { runCron } from "../src/cron";
 import { _clearMemCache } from "../src/cache";
+import { okFetch, seedObs } from "./helpers";
 import { constantTimeEqual } from "../src/auth";
 import { zurichToUtc } from "../src/time";
 
 const TOKEN = "s3cret-token";
-const feed = parseFeed(fixture, CITY_ID, 20);
-const ids = STATIONS.map((s) => s.id);
 
 /** DB, die bei jedem Zugriff fehlschlägt – beweist "401 vor D1". */
 const explodingDb = new Proxy({}, { get: () => { throw new Error("D1 darf nicht angefasst werden"); } }) as D1Database;
@@ -26,7 +22,7 @@ async function seededDb() {
     const d = new Date(Date.UTC(2026, 9, 5 + 7 * w));
     for (let mi = 30; mi <= 75; mi += 5) {
       const ms = zurichToUtc(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), 7, 0) + mi * 60_000;
-      await writeRun(db, Math.floor(ms / 300000) * 300, feed, ids);
+      await seedObs(db, Math.floor(ms / 300000) * 300);
     }
   }
   return db;
@@ -63,11 +59,12 @@ describe("Auth", () => {
 describe("Endpunkte", () => {
   it("/now zeigt letzten Snapshot", async () => {
     const db = createD1();
-    await writeRun(db, Math.floor(Date.now() / 300000) * 300, feed, ids);
+    await runCron({ DB: db }, Date.now(), okFetch);
     const r = await get("/now", { DB: db, API_TOKEN: TOKEN }, TOKEN);
     expect(r.status).toBe(200);
-    const j = (await r.json()) as { stale: boolean; stations: { alias: string; bikes: number; ebikes: number }[] };
+    const j = (await r.json()) as { stale: boolean; network: { free_floating: number }; stations: { alias: string; bikes: number; ebikes: number }[] };
     expect(j.stale).toBe(false);
+    expect(j.network.free_floating).toBe(2);
     expect(j.stations.find((s) => s.alias === "suedpol")).toMatchObject({ bikes: 4, ebikes: 4 });
   });
 
@@ -140,9 +137,18 @@ describe("Endpunkte", () => {
       pages++;
     } while (cursor && pages < 100);
     expect(rows).toBe(total);
-    const s = await get("/export?table=snap&limit=5", env, TOKEN);
+    await runCron(env, Date.now(), okFetch);
+    const s = await get("/export?table=log", env, TOKEN);
     const txt = await s.text();
-    expect(txt.split("\n")[1]).toMatch(/^\d+,25,\d+,\d+,2,\d+,"\[\[/);
+    expect(txt.split("\n")[1]).toMatch(/^\d+,,K,25,\d+,"\[\[/);
+    // Text-Cursor (Velonummern) blättert korrekt
+    let cur: string | null = null, n = 0, guard = 0;
+    do {
+      const r = await get(`/export?table=bikes&limit=7${cur ? "&cursor=" + cur : ""}`, env, TOKEN);
+      n += (await r.text()).trim().split("\n").length - 1;
+      cur = r.headers.get("x-next-cursor");
+    } while (cur && ++guard < 100);
+    expect(n).toBe((db.raw.prepare("SELECT count(*) c FROM bikes").get() as { c: number }).c);
     expect((await get("/export?table=meta", env, TOKEN)).status).toBe(400);
   });
 });

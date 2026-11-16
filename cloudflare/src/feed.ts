@@ -29,10 +29,34 @@ export interface StationState {
   active: boolean;
 }
 
+/** Ort eines Velos: Station-uid oder [lat, lng] bei frei abgestelltem Velo */
+export type Loc = number | [number, number];
+
 export interface ParsedFeed {
   stations: StationState[];
   free_floating: number;
   booked: number;
+  /** Velonummer → aktueller Ort (alle sichtbaren Velos, inkl. reservierte) */
+  bikes: Map<string, Loc>;
+  /** Velonummer → Typ-ID, nur wenn der Feed mit Velo-Liste abgefragt wurde */
+  bikeTypes: Map<string, string>;
+}
+
+const r5 = (x: number) => Math.round(x * 1e5) / 1e5;
+
+function bikeNumbers(p: Record<string, unknown>): string[] {
+  const bn = p.bike_numbers;
+  return Array.isArray(bn) ? bn.filter((x): x is string => typeof x === "string" && x.length > 0 && x.length < 20) : [];
+}
+
+function collectTypes(p: Record<string, unknown>, into: Map<string, string>) {
+  const list = p.bike_list;
+  if (!Array.isArray(list)) return;
+  for (const b of list as Record<string, unknown>[]) {
+    if (b && typeof b.number === "string" && (typeof b.bike_type === "number" || typeof b.bike_type === "string")) {
+      into.set(b.number, String(b.bike_type));
+    }
+  }
 }
 
 const MAX_BIKES = 500;
@@ -57,17 +81,27 @@ export function parseFeed(json: unknown, cityId: number, minPlaces: number): Par
   if (!Array.isArray(places)) throw new FeedError("Feld 'places' fehlt");
 
   const stations: StationState[] = [];
+  const bikeLocs = new Map<string, Loc>();
+  const bikeTypes = new Map<string, string>();
   let freeFloating = 0;
   let booked = 0;
   for (const p of places as Record<string, unknown>[]) {
     if (!p || typeof p !== "object") continue;
+    collectTypes(p, bikeTypes);
     if (p.spot !== true) {
       // frei abgestelltes Velo
-      if (p.bike === true) freeFloating += count(p.bikes) ?? 1;
+      if (p.bike === true) {
+        freeFloating += count(p.bikes) ?? 1;
+        if (typeof p.lat === "number" && typeof p.lng === "number") {
+          const loc: Loc = [r5(p.lat), r5(p.lng)];
+          for (const n of bikeNumbers(p)) bikeLocs.set(n, loc);
+        }
+      }
       continue;
     }
     const uid = p.uid;
     if (typeof uid !== "number" || !Number.isInteger(uid)) continue;
+    for (const n of bikeNumbers(p)) bikeLocs.set(n, uid);
     const bikes = count(p.bikes_available_to_rent) ?? count(p.bikes);
     if (bikes === null) continue; // unplausibel ⇒ Station auslassen statt Müll speichern
     let e = 0;
@@ -97,7 +131,7 @@ export function parseFeed(json: unknown, cityId: number, minPlaces: number): Par
   if (stations.length < minPlaces) {
     throw new FeedError(`nur ${stations.length} Stationen im Feed (< ${minPlaces}) – vermutlich gestört`);
   }
-  return { stations, free_floating: freeFloating, booked };
+  return { stations, free_floating: freeFloating, booked, bikes: bikeLocs, bikeTypes };
 }
 
 /** Feed abrufen (mit Timeout und einem Retry). Wirft FeedError. */

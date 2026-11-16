@@ -57,8 +57,8 @@ done
 
 for i in $(seq 1 "$RUNS"); do
   echo "→ Cron-Lauf $i/$RUNS"
-  curl -s "http://127.0.0.1:$PORT/__scheduled?cron=*/5+*+*+*+*" >/dev/null
-  [[ $i -lt $RUNS ]] && sleep 2
+  curl -s "http://127.0.0.1:$PORT/__scheduled?cron=*+*+*+*+*" >/dev/null
+  [[ $i -lt $RUNS ]] && sleep 61  # Abruf ist höchstens 1× pro Minute fällig
 done
 sleep 2; [[ -n "${DEBUG:-}" ]] && cat "$LOG"
 echo "--- Worker-Log ---"
@@ -66,7 +66,7 @@ grep -E "cron|Feed|Wartung|Station|scheduled|ERROR" "$LOG" || true
 
 echo "--- lokale D1 ---"
 npx wrangler d1 execute nextbike --local --command \
-  "SELECT (SELECT count(*) FROM obs) AS obs, (SELECT count(*) FROM snap) AS snaps, (SELECT count(*) FROM stations) AS stations, (SELECT count(*) FROM agg) AS agg" \
+  "SELECT (SELECT count(*) FROM obs) AS obs, (SELECT count(*) FROM log) AS log, (SELECT count(*) FROM stations) AS stations, (SELECT count(*) FROM bikes) AS bikes, (SELECT length(data) FROM state) AS state_bytes" \
   2>/dev/null | grep -A20 '"results"' | head -12 || true
 
 echo "--- GET /now ---"

@@ -16,6 +16,21 @@ export const CITY_ID = 126;
  */
 export const FEED_URL = `https://maps2.nextbike.net/maps/nextbike-live.json?city=${CITY_ID}&bikes=false`;
 
+/** Vollabruf inkl. Velo-Liste (≈115 KB) – nur 1× täglich für die Velotypen. */
+export const FEED_URL_FULL = `https://maps2.nextbike.net/maps/nextbike-live.json?city=${CITY_ID}`;
+
+/**
+ * Abruf-Takt. Der Cron feuert jede Minute; ob wirklich abgerufen wird, entscheidet der Code.
+ * Nachts (NIGHT_FROM_H bis NIGHT_TO_H Zürcher Zeit) passiert wenig ⇒ seltener abrufen.
+ */
+export const DAY_INTERVAL_MIN = 1;
+export const NIGHT_INTERVAL_MIN = 5;
+export const NIGHT_FROM_H = 1;
+export const NIGHT_TO_H = 5;
+
+/** Alle wie viele Stunden ein vollständiger Keyframe ins Log geschrieben wird. */
+export const KEYFRAME_HOURS = 6;
+
 /**
  * Velo-Typen mit Elektroantrieb (aus GBFS vehicle_types, nextbike_ch):
  *   150 Fahrrad (human), 196 Fahrrad/SMARTbike (human),

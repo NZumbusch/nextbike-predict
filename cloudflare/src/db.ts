@@ -3,6 +3,7 @@
  */
 import type { ParsedFeed, StationState } from "./feed";
 import { addStat, type StatsByStation } from "./predict";
+import type { Delta, TrackerState } from "./tracker";
 import { weekSlotOf } from "./time";
 
 export interface Env {
@@ -10,29 +11,52 @@ export interface Env {
   API_TOKEN?: string;
   SNAPSHOT_RETENTION_DAYS?: string;
   RAW_RETENTION_DAYS?: string;
+  LOG_RETENTION_DAYS?: string;
+  DB_SIZE_LIMIT_MB?: string;
   /** optional: anderer Feed (nur für lokale Tests, z. B. Fixture-Server) */
   FEED_URL?: string;
 }
 
-/** Snapshot-Eintrag: [uid, bikes, ebikes] bzw. [uid, bikes, ebikes, 0] bei inaktiver Station */
-export type SnapEntry = [number, number, number] | [number, number, number, 0];
+// ---------------------------------------------------------------- Zustand
 
-export function snapEntries(stations: StationState[]): SnapEntry[] {
-  return stations.map((s) => (s.active ? [s.uid, s.bikes, s.ebikes] : [s.uid, s.bikes, s.ebikes, 0]));
+export async function readState(db: D1Database): Promise<TrackerState | null> {
+  const r = await db.prepare("SELECT data FROM state WHERE k = 1").first<{ data: string }>();
+  if (!r) return null;
+  try {
+    const s = JSON.parse(r.data) as TrackerState;
+    return s && s.v === 1 ? s : null;
+  } catch {
+    return null; // kaputter Zustand ⇒ wie Neustart behandeln (nächster Lauf schreibt Keyframe)
+  }
 }
 
-/**
- * Schreibt einen Cron-Lauf: je 1 obs-Zeile pro eigener (aktiver) Station + 1 Snapshot.
- * INSERT OR IGNORE ⇒ ein doppelter Lauf im selben 5-Min-Fenster schreibt nichts doppelt.
- * Gibt die Anzahl geschriebener obs-Zeilen zurück.
- */
-export async function writeRun(db: D1Database, tsSec: number, feed: ParsedFeed, myIds: readonly number[]): Promise<number> {
-  const wslot = weekSlotOf(tsSec * 1000);
+export function writeStateStmt(db: D1Database, s: TrackerState): D1PreparedStatement {
+  return db
+    .prepare("INSERT INTO state (k, data) VALUES (1, ?1) ON CONFLICT(k) DO UPDATE SET data = excluded.data")
+    .bind(JSON.stringify(s));
+}
+
+/** Einzelnes Feld im Zustand setzen, ohne ihn neu zu schreiben (für Wartung). */
+export function patchStateStmt(db: D1Database, field: "last_maint" | "db_bytes", value: number): D1PreparedStatement {
+  return db.prepare(`UPDATE state SET data = json_set(data, '$.${field}', ?1) WHERE k = 1`).bind(value);
+}
+
+// ---------------------------------------------------------------- Schreiben pro Lauf
+
+export function logStmt(db: D1Database, ts: number, prevTs: number | null, kind: "K" | "D", d: Delta): D1PreparedStatement {
+  return db
+    .prepare("INSERT OR IGNORE INTO log (ts, prev_ts, kind, n_st, n_bk, st, bk) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)")
+    .bind(ts, prevTs, kind, d.st.length, d.bk.length, JSON.stringify(d.st), JSON.stringify(d.bk));
+}
+
+/** obs-Zeilen (Prognose-Basis) für die eigenen, aktiven Stationen. */
+export function obsStmts(db: D1Database, ts5: number, feed: ParsedFeed, myIds: readonly number[]): D1PreparedStatement[] {
+  const wslot = weekSlotOf(ts5 * 1000);
   const byId = new Map(feed.stations.map((s) => [s.uid, s]));
-  const stmts: D1PreparedStatement[] = [];
-  const obsStmt = db.prepare(
+  const stmt = db.prepare(
     "INSERT OR IGNORE INTO obs (station_id, wslot, ts, bikes, ebikes, free_racks) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
   );
+  const out: D1PreparedStatement[] = [];
   for (const id of myIds) {
     const s = byId.get(id);
     if (!s) {
@@ -43,24 +67,12 @@ export async function writeRun(db: D1Database, tsSec: number, feed: ParsedFeed, 
       console.warn(`Station ${id} inaktiv/Wartung – keine Beobachtung`);
       continue;
     }
-    stmts.push(obsStmt.bind(id, wslot, tsSec, s.bikes, s.ebikes, s.free_racks));
+    out.push(stmt.bind(id, wslot, ts5, s.bikes, s.ebikes, s.free_racks));
   }
-  const nObs = stmts.length;
-  let totalBikes = 0, totalE = 0;
-  for (const s of feed.stations) {
-    totalBikes += s.bikes;
-    totalE += s.ebikes;
-  }
-  stmts.push(
-    db
-      .prepare(
-        "INSERT OR IGNORE INTO snap (ts, n_stations, total_bikes, total_ebikes, free_floating, booked, data) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-      )
-      .bind(tsSec, feed.stations.length, totalBikes, totalE, feed.free_floating, feed.booked, JSON.stringify(snapEntries(feed.stations))),
-  );
-  await db.batch(stmts);
-  return nObs;
+  return out;
 }
+
+// ---------------------------------------------------------------- Stammdaten (1× täglich)
 
 /** Stammdaten aller Stationen per einzelnem Statement (json_each) upserten. */
 export function upsertStationsStmt(db: D1Database, tsSec: number, stations: StationState[]): D1PreparedStatement {
@@ -77,20 +89,41 @@ export function upsertStationsStmt(db: D1Database, tsSec: number, stations: Stat
     .bind(JSON.stringify(rows), tsSec);
 }
 
+/** Velo-Stammdaten: alle sichtbaren Velos, Typ wenn bekannt (aus Vollabruf). */
+export function upsertBikesStmt(db: D1Database, tsSec: number, feed: ParsedFeed): D1PreparedStatement {
+  const rows = [...feed.bikes.keys()].map((n) => [n, feed.bikeTypes.get(n) ?? null]);
+  return db
+    .prepare(
+      `INSERT INTO bikes (number, type, first_seen, last_seen)
+       SELECT json_extract(value, '$[0]'), json_extract(value, '$[1]'), ?2, ?2
+       FROM json_each(?1) WHERE true
+       ON CONFLICT(number) DO UPDATE SET type = coalesce(excluded.type, type), last_seen = excluded.last_seen`,
+    )
+    .bind(JSON.stringify(rows), tsSec);
+}
+
+// ---------------------------------------------------------------- Wartung
+
+export interface MaintenanceOpts {
+  rawDays: number;
+  /** 0 = für immer */
+  logDays: number;
+  /** 0 = für immer (alte v1-Snapshots) */
+  snapDays: number;
+  /** aktuelle DB-Grösse und Grenze in Bytes; darüber werden die ältesten 30 Tage Log gelöscht */
+  dbBytes: number;
+  dbLimitBytes: number;
+}
+
 /**
  * Tägliche Wartung (in einer Transaktion):
  *  1. obs älter als rawDays → in agg addieren (Station × Wochen-Slot), dann löschen
- *  2. Snapshots älter als snapDays löschen (0 = behalten)
- *  3. Stammdaten aktualisieren, last_maint setzen
+ *  2. Log/Snapshots nach Aufbewahrungsfrist bzw. Grössen-Schutz löschen
+ *  3. Stammdaten (Stationen, Velos) aktualisieren, last_maint setzen
+ * Gibt die DB-Grösse nach der Wartung zurück (falls D1 sie meldet).
  */
-export async function maintenance(
-  db: D1Database,
-  tsSec: number,
-  rawDays: number,
-  snapDays: number,
-  stations: StationState[] | null,
-): Promise<void> {
-  const rawCut = tsSec - rawDays * 86400;
+export async function maintenance(db: D1Database, tsSec: number, o: MaintenanceOpts, feed: ParsedFeed | null): Promise<number | null> {
+  const rawCut = tsSec - o.rawDays * 86400;
   const stmts: D1PreparedStatement[] = [
     db
       .prepare(
@@ -106,10 +139,25 @@ export async function maintenance(
       .bind(rawCut),
     db.prepare("DELETE FROM obs WHERE ts < ?1").bind(rawCut),
   ];
-  if (snapDays > 0) stmts.push(db.prepare("DELETE FROM snap WHERE ts < ?1").bind(tsSec - snapDays * 86400));
-  if (stations) stmts.push(upsertStationsStmt(db, tsSec, stations));
-  stmts.push(setMetaStmt(db, "last_maint", String(tsSec)));
-  await db.batch(stmts);
+  if (o.logDays > 0) stmts.push(db.prepare("DELETE FROM log WHERE ts < ?1").bind(tsSec - o.logDays * 86400));
+  if (o.dbLimitBytes > 0 && o.dbBytes > o.dbLimitBytes) {
+    console.warn(`DB ${Math.round(o.dbBytes / 1e6)} MB > Grenze – lösche älteste 30 Tage Log`);
+    stmts.push(db.prepare("DELETE FROM log WHERE ts < (SELECT min(ts) FROM log) + 30 * 86400"));
+    stmts.push(db.prepare("DELETE FROM snap WHERE ts < (SELECT min(ts) FROM snap) + 30 * 86400"));
+  }
+  if (o.snapDays > 0) stmts.push(db.prepare("DELETE FROM snap WHERE ts < ?1").bind(tsSec - o.snapDays * 86400));
+  if (feed) {
+    stmts.push(upsertStationsStmt(db, tsSec, feed.stations));
+    stmts.push(upsertBikesStmt(db, tsSec, feed));
+  }
+  stmts.push(patchStateStmt(db, "last_maint", tsSec));
+  const res = await db.batch(stmts);
+  const size = (res[res.length - 1]?.meta as { size_after?: number } | undefined)?.size_after;
+  if (typeof size === "number") {
+    await db.batch([patchStateStmt(db, "db_bytes", size)]);
+    return size;
+  }
+  return null;
 }
 
 export function setMetaStmt(db: D1Database, k: string, v: string): D1PreparedStatement {
@@ -120,6 +168,8 @@ export async function getMeta(db: D1Database, k: string): Promise<string | null>
   const r = await db.prepare("SELECT v FROM meta WHERE k = ?1").bind(k).first<{ v: string }>();
   return r?.v ?? null;
 }
+
+// ---------------------------------------------------------------- Lesen
 
 const intList = (xs: readonly number[]) => xs.map((x) => String(Math.trunc(x))).join(",");
 
@@ -146,19 +196,30 @@ export async function loadStats(db: D1Database, stationIds: readonly number[], w
   return stats;
 }
 
-export interface LatestSnap {
+/** Aktueller Stand (aus dem Zustand, 1 gelesene Zeile). */
+export interface Current {
   ts: number;
   free_floating: number;
   total_bikes: number;
+  visible_bikes: number;
+  db_bytes: number;
   byId: Map<number, { bikes: number; ebikes: number; active: boolean }>;
 }
 
-export async function latestSnap(db: D1Database): Promise<LatestSnap | null> {
-  const r = await db
-    .prepare("SELECT ts, free_floating, total_bikes, data FROM snap ORDER BY ts DESC LIMIT 1")
-    .first<{ ts: number; free_floating: number; total_bikes: number; data: string }>();
-  if (!r) return null;
+export function currentFromState(s: TrackerState | null): Current | null {
+  if (!s || !s.ts) return null;
   const byId = new Map<number, { bikes: number; ebikes: number; active: boolean }>();
-  for (const e of JSON.parse(r.data) as SnapEntry[]) byId.set(e[0], { bikes: e[1], ebikes: e[2], active: e[3] !== 0 });
-  return { ts: r.ts, free_floating: r.free_floating, total_bikes: r.total_bikes, byId };
+  let total = 0;
+  for (const uid in s.st) {
+    const t = s.st[uid]!;
+    byId.set(Number(uid), { bikes: t[0], ebikes: t[1], active: t[3] === 1 });
+    total += t[0];
+  }
+  let ff = 0;
+  for (const n in s.bk) if (Array.isArray(s.bk[n])) ff++;
+  return { ts: s.ts, free_floating: ff, total_bikes: total, visible_bikes: Object.keys(s.bk).length, db_bytes: s.db_bytes, byId };
+}
+
+export async function readCurrent(db: D1Database): Promise<Current | null> {
+  return currentFromState(await readState(db));
 }
