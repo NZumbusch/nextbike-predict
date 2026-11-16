@@ -16,6 +16,7 @@ class SourceConfig:
     provider: str | None = None       # Standard-Anbieter-ID, falls der Feed keine provider_id liefert
     language: str = "en"
     auth: str | None = None           # Authorization-Header (sharedmobility.ch v2.3: E-Mail)
+    auth_url: str | None = None       # Endpunkt, der mit auth genutzt wird (sonst url)
     vehicles: bool = True
     stations: bool = True
     info_interval_s: int = 6 * 3600
@@ -91,6 +92,7 @@ def load_config(path: str | os.PathLike | None = None, env: dict | None = None) 
             providers_exclude=list(src.get("providers_exclude", [])),
             raw_feeds=list(src.get("raw_feeds", [])),
             full_url=src.get("full_url"),
+            auth_url=src.get("auth_url"),
         )
         if src.get("auth_from_env") and auth_email:
             sc.auth = auth_email

@@ -1,0 +1,48 @@
+# sharedmob auf dem Raspberry Pi
+#   docker compose up -d --build        starten
+#   docker compose logs -f collector    Sammler-Log
+# Statusseite: http://<ip-des-pi>:8080
+name: sharedmob
+
+x-app: &app
+  build: .
+  image: sharedmob:latest
+  restart: unless-stopped
+  env_file: .env
+  volumes:
+    - ./data:/data
+    - ./config.toml:/app/config.toml:ro
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+  collector:
+    <<: *app
+    command: ["python", "-m", "sharedmob.collector"]
+    stop_grace_period: 3m          # laufenden Archiv-Export sauber beenden
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,sys,time; sys.exit(time.time()-os.path.getmtime('/data/heartbeat') > 600)"]
+      interval: 2m
+      timeout: 10s
+      start_period: 3m
+
+  web:
+    <<: *app
+    command: ["python", "-m", "sharedmob.web"]
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+
+  # Lädt Parquet-Archiv und Rohdaten per rclone hoch (z. B. Google Drive). Einrichtung: README.
+  upload:
+    image: rclone/rclone:1.68.2
+    restart: unless-stopped
+    env_file: .env
+    entrypoint: ["/bin/sh", "/scripts/rclone-loop.sh"]
+    volumes:
+      - ./data:/data
+      - ./rclone:/config/rclone
+      - ./backup/rclone-loop.sh:/scripts/rclone-loop.sh:ro
+    logging:
+      driver: json-file
+      options: { max-size: "2m", max-file: "2" }

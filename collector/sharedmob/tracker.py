@@ -87,7 +87,7 @@ class Changes:
 # Spaltenreihenfolge der Tupel (muss zu store.py passen)
 V_COLS = ("id", "source", "provider", "vehicle_id", "raw_id", "id_mode", "vehicle_type", "lat", "lon", "station_id",
           "reserved", "disabled", "range_m", "start_ts", "start_prev_ts")
-S_COLS = ("id", "source", "provider", "station_id", "bikes", "docks", "installed", "renting", "returning", "by_type",
+S_COLS = ("id", "source", "provider", "station_id", "bikes", "docks", "is_installed", "is_renting", "is_returning", "by_type",
           "start_ts", "start_prev_ts")
 T_COLS = ("source", "provider", "vehicle_id", "vehicle_type", "kind", "dep_ts", "dep_next_ts", "arr_prev_ts", "arr_ts",
           "from_lat", "from_lon", "from_station", "to_lat", "to_lon", "to_station", "distance_m", "from_spell", "to_spell")
@@ -98,6 +98,7 @@ class Tracker:
     def __init__(self, source: str, *, move_tolerance_m: float = 25, trip_min_distance_m: float = 100,
                  round_trip_min_s: int = 300, trip_link_max_h: float = 72, id_strategy: str = "auto",
                  position_providers: list[str] | None = None, auto_churn_threshold: float = 0.5,
+                 provider_absent_close_s: int = 6 * 3600,
                  next_vehicle_id: Callable[[], int] | None = None, next_station_id: Callable[[], int] | None = None):
         self.source = source
         self.tol = move_tolerance_m
@@ -117,6 +118,26 @@ class Tracker:
         self.prov_mode: dict[str, str] = {}          # durch auto-Erkennung auf "pos" umgestellt
         self.prev_raw_ids: dict[str, set[str]] = {}
         self._last_prune = 0
+        # Teilausfall-Schutz: fehlt ein Anbieter komplett, bleiben seine Zustände offen
+        self.absent_close_s = provider_absent_close_s
+        self.absent_since: dict[tuple[str, str], int] = {}   # (v|s, Anbieter) → seit
+
+    def _absent(self, kind: str, present: set[str], open_counts: dict[str, int], ts: int, min_fleet: int = 10) -> set[str]:
+        """Anbieter, die gerade komplett fehlen und (noch) nicht geschlossen werden sollen.
+        Nur für Anbieter mit ≥ min_fleet offenen Zuständen – bei Kleinstflotten ist "alle weg" plausibel."""
+        hold = set()
+        for p in set(open_counts) - present:
+            if open_counts[p] < min_fleet:
+                continue
+            since = self.absent_since.setdefault((kind, p), ts)
+            if ts - since < self.absent_close_s:
+                hold.add(p)
+                if since == ts:
+                    log.warning("[%s] Anbieter %s fehlt im Feed – Zustände bleiben offen (max. %d h)",
+                                self.source, p, self.absent_close_s // 3600)
+        for p in present:
+            self.absent_since.pop((kind, p), None)
+        return hold
 
     # ---------------------------------------------------------------- Identität
     def mode_for(self, provider: str) -> str:
@@ -194,7 +215,10 @@ class Tracker:
         cur = self._keyed(vehicles, ch)
         switched = {p for p, _ in ch.mode_switches}
         stats = {row[2]: row for row in ch.provider_stats}
+        hold = self._absent("v", {k[0] for k in cur}, _count_providers(self.open_v), ts)
         for key in list(self.open_v):
+            if key[0] in hold:
+                continue
             o = self.open_v[key]
             hit = cur.get(key)
             if hit is None:
@@ -240,7 +264,10 @@ class Tracker:
     def _stations(self, stations: list[StationObs], ts: int, ch: Changes) -> None:
         prev_ts = self.last_s_ts
         cur = {(s.provider, s.station_id): s for s in stations}
+        hold = self._absent("s", {k[0] for k in cur}, _count_providers(self.open_s), ts)
         for key in list(self.open_s):
+            if key[0] in hold:
+                continue
             o = self.open_s[key]
             s = cur.get(key)
             if s is not None and s.state_key() == o.obs.state_key():
@@ -278,14 +305,21 @@ class Tracker:
             self.open_v[(r["provider"], r["vehicle_id"])] = OpenV(r["id"], v, r["vehicle_id"], r["start_ts"],
                                                                    max(r["start_ts"], last_v_ts or 0))
         for r in open_s_rows:
-            s = StationObs(r["provider"], r["station_id"], r["bikes"], r["docks"], bool(r["installed"]),
-                           bool(r["renting"]), bool(r["returning"]), r["by_type"])
+            s = StationObs(r["provider"], r["station_id"], r["bikes"], r["docks"], bool(r["is_installed"]),
+                           bool(r["is_renting"]), bool(r["is_returning"]), r["by_type"])
             self.open_s[(r["provider"], r["station_id"])] = OpenS(r["id"], s, r["start_ts"], max(r["start_ts"], last_s_ts or 0))
         for r in recent_rows:
             key = (r["provider"], r["vehicle_id"])
             if key not in self.open_v:
                 self.recent[key] = ClosedRef(r["id"], r["lat"], r["lon"], r["station_id"], r["vehicle_type"],
                                              r["end_ts"], r["end_next_ts"])
+
+
+def _count_providers(d: dict) -> dict[str, int]:
+    out: dict[str, int] = defaultdict(int)
+    for k in d:
+        out[k[0]] += 1
+    return out
 
 
 def _counter() -> Callable[[], int]:

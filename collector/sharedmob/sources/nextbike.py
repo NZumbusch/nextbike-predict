@@ -106,7 +106,7 @@ class NextbikeSource:
         self.info_ts = 0.0
 
     def poll(self, now: float) -> Snapshot:
-        full = bool(self.cfg.full_url) and now - self.info_ts >= self.cfg.info_interval_s
+        full = bool(self.cfg.full_url) and (not self.info_ts or now - self.info_ts >= self.cfg.info_interval_s)
         r = self.fetch(self.cfg.full_url if full else self.cfg.url, timeout=self.cfg.timeout_s)
         vehicles, stations, infos, new_types = parse_live(r.json(), self.types)
         self.types.update(new_types)

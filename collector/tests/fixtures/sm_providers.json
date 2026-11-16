@@ -1,0 +1,94 @@
+{
+ "last_updated": 1794842388,
+ "ttl": 60,
+ "version": "2.0",
+ "data": {
+  "providers": [
+   {
+    "provider_id": "mobility",
+    "name": "Mobility",
+    "vehicle_type": "E-Car",
+    "timezone": "Europe/Zurich",
+    "url": "https://www.mobility.ch",
+    "email": "office@mobility.ch",
+    "last_updated": 1794842366
+   },
+   {
+    "provider_id": "nextbike_ch",
+    "name": "nextbike Switzerland",
+    "vehicle_type": "E-CargoBike",
+    "timezone": "Europe/Zurich",
+    "rental_apps": {
+     "ios": {
+      "store_uri": "https://apps.apple.com/app/id504288371",
+      "discovery_uri": "nextbike://"
+     },
+     "android": {
+      "store_uri": "https://play.google.com/store/apps/details?id=de.nextbike",
+      "discovery_uri": "nextbike://"
+     }
+    },
+    "url": "https://www.nextbike.ch/",
+    "phone_number": "0041415080800",
+    "email": "info@nextbike.ch",
+    "last_updated": 1794842328
+   },
+   {
+    "provider_id": "bird-zurich",
+    "name": "bird zurich",
+    "vehicle_type": "E-Bike",
+    "timezone": "Europe/Zurich",
+    "rental_apps": {
+     "ios": {
+      "store_uri": "https://apps.apple.com/us/app/bird-be-free-enjoy-the-ride/id1260842311",
+      "discovery_uri": "bird://"
+     },
+     "android": {
+      "store_uri": "https://play.google.com/store/apps/details?id=co.bird.android",
+      "discovery_uri": "bird://charger-onboarding"
+     }
+    },
+    "url": "https://www.bird.co",
+    "last_updated": 1794842279
+   },
+   {
+    "provider_id": "velospot",
+    "name": "Velospot",
+    "vehicle_type": "CargoBike",
+    "timezone": "Europe/Zurich",
+    "rental_apps": {
+     "ios": {
+      "store_uri": "https://apps.apple.com/app/publibike-velospot/id6739938966",
+      "discovery_uri": "https://app.publibike.ch"
+     },
+     "android": {
+      "store_uri": "https://play.google.com/store/apps/details?id=ch.publibike2.app",
+      "discovery_uri": "https://app.publibike.ch"
+     }
+    },
+    "url": "https://www.velospot.info/customer/public",
+    "email": "info@velospot.ch",
+    "last_updated": 1794842162
+   },
+   {
+    "provider_id": "voiscooters.com",
+    "name": "Voi Technology AB",
+    "vehicle_type": "E-Bike",
+    "timezone": "Europe/Zurich",
+    "rental_apps": {
+     "ios": {
+      "store_uri": "https://apps.apple.com/app/id1395921017?mt=8",
+      "discovery_uri": "voiapp://closest_vehicle"
+     },
+     "android": {
+      "store_uri": "https://play.google.com/store/apps/details?id=io.voiapp.voi&hl=en&gl=US",
+      "discovery_uri": "voiapp://closest_vehicle"
+     }
+    },
+    "url": "https://www.voiscooters.com/",
+    "email": "support@voiapp.io",
+    "last_updated": 1794842195
+   }
+  ]
+ }
+}

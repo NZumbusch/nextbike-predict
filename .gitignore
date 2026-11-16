@@ -21,3 +21,7 @@ __pycache__/
 .venv/
 raspberry-pi/data/
 raspberry-pi/rclone/
+
+# collector/
+collector/data/
+collector/rclone/

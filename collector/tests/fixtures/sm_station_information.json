@@ -1,0 +1,313 @@
+{
+ "last_updated": 1794842397,
+ "ttl": 60,
+ "version": "2.0",
+ "data": {
+  "stations": [
+   {
+    "station_id": "mobility:84459",
+    "name": "Bern Zentrum Freudenberg",
+    "lat": 46.94553,
+    "lon": 7.4726,
+    "provider_id": "mobility"
+   },
+   {
+    "station_id": "mobility:81245",
+    "name": "B\u00fclach Im Guss",
+    "lat": 47.52493,
+    "lon": 8.5376,
+    "provider_id": "mobility"
+   },
+   {
+    "station_id": "mobility:80996",
+    "name": "Luzern R\u00f6sslimattstrasse",
+    "lat": 47.04459,
+    "lon": 8.31386,
+    "provider_id": "mobility"
+   },
+   {
+    "station_id": "mobility:71344",
+    "name": "Reinach (AG) Bahnhof",
+    "lat": 47.24986,
+    "lon": 8.18413,
+    "provider_id": "mobility"
+   },
+   {
+    "station_id": "mobility:79152",
+    "name": "Spreitenbach Rotzenb\u00fchl",
+    "lat": 47.4259,
+    "lon": 8.36127,
+    "provider_id": "mobility"
+   },
+   {
+    "station_id": "mobility:70536",
+    "name": "Z\u00fcrich Ferdinand-Hodler-Strasse",
+    "lat": 47.40432,
+    "lon": 8.49994,
+    "provider_id": "mobility"
+   },
+   {
+    "station_id": "mobility:70123",
+    "name": "Z\u00fcrich H\u00f6ngg / Gsteigstrasse",
+    "lat": 47.40255,
+    "lon": 8.50024,
+    "provider_id": "mobility"
+   },
+   {
+    "station_id": "mobility:80133",
+    "name": "Z\u00fcrich Wipkingen Bahnhof / Nordstrasse",
+    "lat": 47.394,
+    "lon": 8.52828,
+    "provider_id": "mobility"
+   },
+   {
+    "station_id": "nextbike_ch:286234",
+    "name": "Bahnhof Sursee / Bahnhofplatz",
+    "short_name": "9002",
+    "lat": 47.169754,
+    "lon": 8.099563,
+    "region_id": "nextbike_ch:88",
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286234",
+     "ios": "https://app.nextbike.net/station?id=286234",
+     "web": "https://nxtb.it/p/286234"
+    },
+    "provider_id": "nextbike_ch"
+   },
+   {
+    "station_id": "nextbike_ch:286235",
+    "name": "Stadtverwaltung",
+    "short_name": "9003",
+    "lat": 47.171707,
+    "lon": 8.1068,
+    "region_id": "nextbike_ch:88",
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286235",
+     "ios": "https://app.nextbike.net/station?id=286235",
+     "web": "https://nxtb.it/p/286235"
+    },
+    "provider_id": "nextbike_ch"
+   },
+   {
+    "station_id": "nextbike_ch:286236",
+    "name": "M\u00fcnsterplatz",
+    "short_name": "9004",
+    "lat": 47.171585,
+    "lon": 8.111415,
+    "region_id": "nextbike_ch:88",
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286236",
+     "ios": "https://app.nextbike.net/station?id=286236",
+     "web": "https://nxtb.it/p/286236"
+    },
+    "provider_id": "nextbike_ch"
+   },
+   {
+    "station_id": "nextbike_ch:286239",
+    "name": "M\u00e4rtplatz",
+    "short_name": "9005",
+    "lat": 47.17295,
+    "lon": 8.110643,
+    "region_id": "nextbike_ch:88",
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286239",
+     "ios": "https://app.nextbike.net/station?id=286239",
+     "web": "https://nxtb.it/p/286239"
+    },
+    "provider_id": "nextbike_ch"
+   },
+   {
+    "station_id": "nextbike_ch:286240",
+    "name": "Schulhaus Kotten / Kottenmatte 2",
+    "short_name": "9006",
+    "lat": 47.172703,
+    "lon": 8.094649,
+    "region_id": "nextbike_ch:88",
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286240",
+     "ios": "https://app.nextbike.net/station?id=286240",
+     "web": "https://nxtb.it/p/286240"
+    },
+    "provider_id": "nextbike_ch"
+   },
+   {
+    "station_id": "nextbike_ch:348292",
+    "name": "Mariazell",
+    "short_name": "9007",
+    "lat": 47.173862,
+    "lon": 8.121092,
+    "region_id": "nextbike_ch:88",
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=348292",
+     "ios": "https://app.nextbike.net/station?id=348292",
+     "web": "https://nxtb.it/p/348292"
+    },
+    "provider_id": "nextbike_ch"
+   },
+   {
+    "station_id": "nextbike_ch:348305",
+    "name": "Oberkirch / Haselmatte 2C",
+    "short_name": "9008",
+    "lat": 47.16956,
+    "lon": 8.095969,
+    "region_id": "nextbike_ch:88",
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=348305",
+     "ios": "https://app.nextbike.net/station?id=348305",
+     "web": "https://nxtb.it/p/348305"
+    },
+    "provider_id": "nextbike_ch"
+   },
+   {
+    "station_id": "nextbike_ch:355154",
+    "name": "Metro / Moosgasse 1",
+    "short_name": "9010",
+    "lat": 47.175713,
+    "lon": 8.108355,
+    "region_id": "nextbike_ch:88",
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=355154",
+     "ios": "https://app.nextbike.net/station?id=355154",
+     "web": "https://nxtb.it/p/355154"
+    },
+    "provider_id": "nextbike_ch"
+   },
+   {
+    "station_id": "velospot:168",
+    "name": "MUZOO - La Chaux-de-Fonds",
+    "short_name": "Mixed",
+    "lat": 47.10511,
+    "lon": 6.823428,
+    "address": "Rue Alexis-Marie-Piaget 84",
+    "region_id": "velospot:9",
+    "post_code": "2300",
+    "capacity": 40,
+    "rental_uris": {
+     "android": "https://app.publibike.ch/station?id=168",
+     "ios": "https://app.publibike.ch/station?id=168",
+     "web": "https://www.publibike.ch/de/karte"
+    },
+    "provider_id": "velospot"
+   },
+   {
+    "station_id": "velospot:169",
+    "name": "Le Parc des Sports - La Chaux-de-Fonds",
+    "short_name": "Exclusive",
+    "lat": 47.112064,
+    "lon": 6.835645,
+    "address": "Rue de la Charri\u00e8re 70A",
+    "region_id": "velospot:9",
+    "post_code": "2300",
+    "capacity": 40,
+    "rental_uris": {
+     "android": "https://app.publibike.ch/station?id=169",
+     "ios": "https://app.publibike.ch/station?id=169",
+     "web": "https://www.publibike.ch/de/karte"
+    },
+    "provider_id": "velospot"
+   },
+   {
+    "station_id": "velospot:170",
+    "name": "Passage L\u00e9opold-Robert 3 (urbanisme) - La Chaux-de-Fonds",
+    "short_name": "Mixed",
+    "lat": 47.103138,
+    "lon": 6.8319397,
+    "address": "Passage L\u00e9opold-Robert 3",
+    "region_id": "velospot:9",
+    "post_code": "2300",
+    "capacity": 40,
+    "rental_uris": {
+     "android": "https://app.publibike.ch/station?id=170",
+     "ios": "https://app.publibike.ch/station?id=170",
+     "web": "https://www.publibike.ch/de/karte"
+    },
+    "provider_id": "velospot"
+   },
+   {
+    "station_id": "velospot:171",
+    "name": "Coll\u00e8ge de l'Ouest - La Chaux-de-Fonds",
+    "short_name": "Mixed",
+    "lat": 47.100338,
+    "lon": 6.8189073,
+    "address": "Rue du Temple-Allemand 110b",
+    "region_id": "velospot:9",
+    "post_code": "2300",
+    "capacity": 40,
+    "rental_uris": {
+     "android": "https://app.publibike.ch/station?id=171",
+     "ios": "https://app.publibike.ch/station?id=171",
+     "web": "https://www.publibike.ch/de/karte"
+    },
+    "provider_id": "velospot"
+   },
+   {
+    "station_id": "velospot:172",
+    "name": "Coll\u00e8ge des Forges - La Chaux-de-Fonds",
+    "short_name": "Mixed",
+    "lat": 47.09336,
+    "lon": 6.809921,
+    "address": "Avenue des Forges 16",
+    "region_id": "velospot:9",
+    "post_code": "2300",
+    "capacity": 40,
+    "rental_uris": {
+     "android": "https://app.publibike.ch/station?id=172",
+     "ios": "https://app.publibike.ch/station?id=172",
+     "web": "https://www.publibike.ch/de/karte"
+    },
+    "provider_id": "velospot"
+   },
+   {
+    "station_id": "velospot:173",
+    "name": "Parking de la Ronde - La Chaux-de-Fonds",
+    "short_name": "Mixed",
+    "lat": 47.10674,
+    "lon": 6.8354955,
+    "address": "Rue du Marais 10",
+    "region_id": "velospot:9",
+    "post_code": "2300",
+    "capacity": 40,
+    "rental_uris": {
+     "android": "https://app.publibike.ch/station?id=173",
+     "ios": "https://app.publibike.ch/station?id=173",
+     "web": "https://www.publibike.ch/de/karte"
+    },
+    "provider_id": "velospot"
+   },
+   {
+    "station_id": "velospot:174",
+    "name": "Place du march\u00e9 - La Chaux-de-Fonds",
+    "short_name": "Mixed",
+    "lat": 47.104267,
+    "lon": 6.8312244,
+    "address": "Rue du March\u00e9 3",
+    "region_id": "velospot:9",
+    "post_code": "2300",
+    "capacity": 40,
+    "rental_uris": {
+     "android": "https://app.publibike.ch/station?id=174",
+     "ios": "https://app.publibike.ch/station?id=174",
+     "web": "https://www.publibike.ch/de/karte"
+    },
+    "provider_id": "velospot"
+   },
+   {
+    "station_id": "velospot:175",
+    "name": "Eplatures-Centre - Manor - La Chaux-de-Fonds",
+    "short_name": "Mixed",
+    "lat": 47.089146,
+    "lon": 6.8024964,
+    "address": "Boulevard des Eplatures 20",
+    "region_id": "velospot:9",
+    "post_code": "2300",
+    "capacity": 40,
+    "rental_uris": {
+     "android": "https://app.publibike.ch/station?id=175",
+     "ios": "https://app.publibike.ch/station?id=175",
+     "web": "https://www.publibike.ch/de/karte"
+    },
+    "provider_id": "velospot"
+   }
+  ]
+ }
+}

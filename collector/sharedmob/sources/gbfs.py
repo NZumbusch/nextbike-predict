@@ -48,7 +48,19 @@ def strip_prefix(provider: str, ident: str) -> str:
     return ident[len(p):] if ident.startswith(p) else ident
 
 
-def parse_vehicles(data: dict, default_provider: str) -> list[VehicleObs]:
+def provider_of(item: dict, ident: str, default_provider: str, known: set[str] | None = None) -> str:
+    """provider_id-Feld (sharedmobility 2.0), sonst Präfix "anbieter:id" (2.3), sonst Standard."""
+    p = item.get("provider_id")
+    if isinstance(p, str) and p:
+        return p
+    if ":" in ident:
+        pre = ident.split(":", 1)[0]
+        if not known or pre in known:
+            return pre
+    return default_provider
+
+
+def parse_vehicles(data: dict, default_provider: str, known: set[str] | None = None) -> list[VehicleObs]:
     d = data.get("data") or {}
     items = d.get("vehicles") if isinstance(d.get("vehicles"), list) else d.get("bikes")
     out: list[VehicleObs] = []
@@ -58,7 +70,7 @@ def parse_vehicles(data: dict, default_provider: str) -> list[VehicleObs]:
         vid = b.get("vehicle_id") or b.get("bike_id")
         if not isinstance(vid, str) or not vid:
             continue
-        prov = b.get("provider_id") if isinstance(b.get("provider_id"), str) else default_provider
+        prov = provider_of(b, vid, default_provider, known)
         lat, lon = _f(b.get("lat")), _f(b.get("lon"))
         if lat is not None and not (-90 <= lat <= 90 and -180 <= lon <= 180):  # type: ignore[operator]
             lat = lon = None
@@ -80,12 +92,12 @@ def parse_vehicles(data: dict, default_provider: str) -> list[VehicleObs]:
     return out
 
 
-def parse_station_status(data: dict, default_provider: str) -> list[StationObs]:
+def parse_station_status(data: dict, default_provider: str, known: set[str] | None = None) -> list[StationObs]:
     out: list[StationObs] = []
     for s in (data.get("data") or {}).get("stations") or []:
         if not isinstance(s, dict) or s.get("station_id") in (None, ""):
             continue
-        prov = s.get("provider_id") if isinstance(s.get("provider_id"), str) else default_provider
+        prov = provider_of(s, str(s["station_id"]), default_provider, known)
         bikes = _i(s.get("num_vehicles_available", s.get("num_bikes_available")))
         if bikes is None:
             continue
@@ -109,12 +121,12 @@ def parse_station_status(data: dict, default_provider: str) -> list[StationObs]:
     return out
 
 
-def parse_station_information(data: dict, default_provider: str) -> list[StationInfo]:
+def parse_station_information(data: dict, default_provider: str, known: set[str] | None = None) -> list[StationInfo]:
     out: list[StationInfo] = []
     for s in (data.get("data") or {}).get("stations") or []:
         if not isinstance(s, dict) or s.get("station_id") in (None, ""):
             continue
-        prov = s.get("provider_id") if isinstance(s.get("provider_id"), str) else default_provider
+        prov = provider_of(s, str(s["station_id"]), default_provider, known)
         out.append(
             StationInfo(
                 provider=prov,
@@ -139,16 +151,35 @@ class GbfsSource:
         self.feeds: dict[str, str] = {}
         self.feeds_ts = 0.0
         self.info_ts = 0.0
+        self.known: set[str] = set()       # bekannte Anbieter-IDs (aus providers-Feed)
+        # Mit Auth (E-Mail) den authentifizierten Endpunkt nutzen, sonst den offenen
+        self.use_auth = bool(cfg.auth and cfg.auth_url)
+        self.fallback_reason: str | None = None
+
+    @property
+    def base_url(self) -> str:
+        return self.cfg.auth_url if self.use_auth else self.cfg.url  # type: ignore[return-value]
 
     @property
     def headers(self) -> dict[str, str]:
-        return {"Authorization": self.cfg.auth} if self.cfg.auth else {}
+        return {"Authorization": self.cfg.auth} if self.use_auth and self.cfg.auth else {}
 
     def _get(self, url: str):
         return self.fetch(url, headers=self.headers, timeout=self.cfg.timeout_s)
 
     def discover(self) -> None:
-        r = self._get(self.cfg.url)
+        try:
+            self._discover()
+        except http.FetchError as e:
+            if not self.use_auth:
+                raise
+            self.use_auth = False
+            self.fallback_reason = str(e)
+            log.warning("[%s] Authentifizierter Endpunkt nicht nutzbar (%s) – weiter mit offenem Endpunkt", self.cfg.id, e)
+            self._discover()
+
+    def _discover(self) -> None:
+        r = self._get(self.base_url)
         d = r.json()
         feeds: dict[str, str] = {}
         data = d.get("data") or {}
@@ -161,7 +192,7 @@ class GbfsSource:
             if isinstance(f, dict) and isinstance(f.get("name"), str) and isinstance(f.get("url"), str):
                 feeds[f["name"]] = f["url"]
         if not feeds:
-            raise http.FetchError(f"{self.cfg.url}: keine Feeds gefunden")
+            raise http.FetchError(f"{self.base_url}: keine Feeds gefunden")
         self.feeds, self.feeds_ts = feeds, time.time()
         log.info("[%s] Feeds: %s", self.cfg.id, ", ".join(sorted(feeds)))
 
@@ -183,24 +214,28 @@ class GbfsSource:
                 snap.feed_last_updated[name] = lu
             return d, lu
 
+        if not self.known and "providers" in self.feeds and (not self.info_ts or now - self.info_ts >= self.cfg.info_interval_s):
+            d, _ = load("providers")
+            self.known = {p["provider_id"] for p in (d.get("data") or {}).get("providers", []) if isinstance(p, dict) and isinstance(p.get("provider_id"), str)}
         vf = next((f for f in VEHICLE_FEEDS if f in self.feeds), None)
         if self.cfg.vehicles and vf:
             d, lu = load(vf)
-            snap.vehicles = self._filter(parse_vehicles(d, prov))
+            snap.vehicles = self._filter(parse_vehicles(d, prov, self.known))
             if lu:
                 lus.append(lu)
         if self.cfg.stations and "station_status" in self.feeds:
             d, lu = load("station_status")
-            snap.stations = self._filter(parse_station_status(d, prov))
+            snap.stations = self._filter(parse_station_status(d, prov, self.known))
             if lu:
                 lus.append(lu)
-        if now - self.info_ts >= self.cfg.info_interval_s:
-            if "station_information" in self.feeds:
-                d, _ = load("station_information")
-                snap.station_info = self._filter(parse_station_information(d, prov))
+        if (not self.info_ts or now - self.info_ts >= self.cfg.info_interval_s):
             if "providers" in self.feeds:
                 d, _ = load("providers")
                 snap.providers = [p for p in (d.get("data") or {}).get("providers", []) if isinstance(p, dict)]
+                self.known = {p["provider_id"] for p in snap.providers if isinstance(p.get("provider_id"), str)}
+            if "station_information" in self.feeds:
+                d, _ = load("station_information")
+                snap.station_info = self._filter(parse_station_information(d, prov, self.known))
             if "vehicle_types" in self.feeds:
                 d, _ = load("vehicle_types")
                 snap.vehicle_types = [v for v in (d.get("data") or {}).get("vehicle_types", []) if isinstance(v, dict)]

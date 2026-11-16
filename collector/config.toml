@@ -1,0 +1,48 @@
+# sharedmob – Sammler für Shared-Mobility-Daten (Schweiz)
+# Änderungen wirken nach: docker compose restart collector
+
+[collector]
+interval_s = 60            # Abruf-Takt (Feeds aktualisieren sich jede Minute, ttl = 60)
+night_interval_s = 60      # nachts (night_from_hour bis night_to_hour, Zürcher Zeit)
+night_from_hour = 1
+night_to_hour = 5
+
+[tracking]
+move_tolerance_m = 25      # kleinere Positionsänderung = GPS-Rauschen, kein neuer Zustand
+trip_min_distance_m = 100  # ab dieser Luftlinie zählt eine Wiederkehr als Fahrt
+round_trip_min_s = 300     # war ein Fahrzeug so lange weg und ist am selben Ort zurück → Rundfahrt
+trip_link_max_h = 72       # länger verschwunden → keine Fahrt (Werkstatt, Depot, Winterpause)
+id_strategy = "auto"       # auto: Anbieter mit ständig wechselnden IDs → Positions-Identität
+position_providers = []    # erzwingen, z. B. ["bird-*"]
+
+[storage]
+hot_days = 21              # so viele Tage bleiben in der Arbeits-DB (Archiv: unbegrenzt)
+raw_every_min = 360        # Rohfeed alle 6 h komprimiert ablegen (0 = aus)
+raw_keep_local_days = 0    # Rohdaten lokal löschen nach N Tagen (0 = nie; Google Drive behält sie)
+archive_hour = 2           # ab dieser Stunde wird der Vortag nach Parquet archiviert
+sqlite_backups_keep = 3    # lokale Kopien der Arbeits-DB
+
+# ---------------------------------------------------------------- Quellen
+# Alle Anbieter der Schweiz über den Aggregator des Bundesamts für Energie (BFE).
+# Lizenz: "Open use. Must provide the source." – Quelle: sharedmobility.ch (BFE)
+[[sources]]
+id = "sharedmobility"
+kind = "gbfs"
+url = "https://sharedmobility.ch/gbfs.json"         # GBFS 2.0, offen
+auth_url = "https://sharedmobility.ch/v2/gbfs"      # GBFS 2.3, nur mit GBFS_AUTH_EMAIL in .env
+auth_from_env = true
+language = "en"
+vehicles = true
+stations = true
+info_interval_min = 360    # Stationsliste, Anbieter: alle 6 h
+providers_exclude = []     # z. B. ["mobility"] um Carsharing auszulassen
+raw_feeds = ["free_bike_status", "vehicle_status", "station_status"]
+
+# nextbike direkt: feste Velonummern ⇒ exakte Einzelfahrten (ch = nextbike Schweiz, ms = invia BikeShare)
+[[sources]]
+id = "nextbike"
+kind = "nextbike"
+url = "https://maps2.nextbike.net/maps/nextbike-live.json?domains=ch,ms&bikes=false"
+full_url = "https://maps2.nextbike.net/maps/nextbike-live.json?domains=ch,ms"   # mit Velotypen
+info_interval_min = 60
+raw_feeds = ["live"]

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="refresh" content="60"><meta name="referrer" content="no-referrer">
+<title>sharedmob Sammler</title>
+<style>
+:root{--bg:#f6f6f4;--fg:#1c1c1c;--muted:#6b6b6b;--card:#fff;--line:#e2e2de;--ok:#0b7a5a;--warn:#b54708;--bad:#c0392b;color-scheme:light dark;font-family:system-ui,sans-serif}
+@media (prefers-color-scheme:dark){:root{--bg:#151716;--fg:#e8e8e6;--muted:#9a9a96;--card:#1f2220;--line:#333735;--ok:#3cc497;--warn:#f0a050;--bad:#ff6b5b}}
+body{margin:0 auto;max-width:1100px;padding:12px 16px 40px;background:var(--bg);color:var(--fg)}
+h1{font-size:1.3rem;margin:.3rem 0}h2{font-size:1.05rem;margin:1.5rem 0 .5rem}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.kpi b{display:block;font-size:1.35rem;font-variant-numeric:tabular-nums}.kpi span{color:var(--muted);font-size:.8rem}
+.scroll{overflow-x:auto}table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:.92rem}
+th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left}td.n,th.n{text-align:right}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.muted,small{color:var(--muted)}
+.tag{font-size:.75rem;padding:0 6px;border:1px solid var(--line);border-radius:8px}
+a{color:var(--ok)}
+</style></head><body>
+<h1>📡 sharedmob – Sammler</h1>
+{% set hb_age = (s.now - s.heartbeat) if s.heartbeat else None %}
+<p>{% if hb_age is not none and hb_age < 300 %}<span class="ok">● läuft</span>{% else %}<span class="bad">● Sammler meldet sich nicht</span>{% endif %}
+ · letzter Durchgang vor {{ s.heartbeat|ago }} · Stand {{ s.now|dt }}</p>
+
+<div class="kpis">
+  <div class="kpi"><b>{{ s.rows.vehicle_spell|num }}</b><span>Fahrzeug-Zustände (Arbeits-DB)</span></div>
+  <div class="kpi"><b>{{ s.rows.station_spell|num }}</b><span>Stations-Zustände</span></div>
+  <div class="kpi"><b>{{ s.rows.trip|num }}</b><span>Fahrten (gleiche ID, Arbeits-DB)</span></div>
+  <div class="kpi"><b>{{ s.storage.archive|mb }}</b><span>Parquet-Archiv</span></div>
+  <div class="kpi"><b>{{ (s.storage.disk_free / 1e9)|round(1) }} GB</b><span>frei auf dem Datenträger</span></div>
+</div>
+
+<h2>Quellen (letzte 24 h)</h2>
+<div class="scroll card"><table>
+<tr><th>Quelle</th><th>letzter Abruf</th><th class="n">Erfolg</th><th class="n">unverändert</th><th class="n">Ø Dauer</th><th class="n">Download</th><th class="n">Δ Fahrzeuge</th><th class="n">Δ Stationen</th><th class="n">Fahrten</th><th>Endpunkt / Fehler</th></tr>
+{% for q in s.sources %}
+<tr><td><b>{{ q.id }}</b> <span class="tag">{{ q.kind }}</span></td>
+<td>{% if q.last %}{{ q.last.ts|dt }} <small>{% if q.last.ok %}<span class="ok">ok</span>{% else %}<span class="bad">Fehler</span>{% endif %}</small>{% else %}–{% endif %}</td>
+<td class="n {{ 'ok' if (q.ok_rate or 0) > 0.98 else 'warn' }}">{{ q.ok_rate|pct }} <small>({{ q.agg.n|num }})</small></td>
+<td class="n">{{ q.agg.stale|num }}</td>
+<td class="n">{{ (q.agg.ms or 0)|round|int }} ms</td><td class="n">{{ q.agg.bytes|mb }}</td>
+<td class="n">{{ q.agg.vc|num }}</td><td class="n">{{ q.agg.sc|num }}</td><td class="n">{{ q.agg.trips|num }}</td>
+<td><small>{{ q.last.endpoint if q.last else '' }}</small>{% if q.err %}<br><small class="bad">{{ q.err.ts|dt }}: {{ q.err.error }}</small>{% endif %}</td></tr>
+{% endfor %}
+</table></div>
+
+<h2>Anbieter (letzte 24 h)</h2>
+<p><small>Identität: <b>id</b> = Fahrzeug-ID wird verfolgt (bei nextbike direkt: feste Velonummer ⇒ exakte Fahrten). <b>pos</b> = Anbieter wechselt IDs laufend ⇒ Verfolgung über die Position (Abfahrten/Ankünfte, keine Fahrtzuordnung).
+„neue IDs“ = Anteil neuer IDs pro Abruf – hoch heisst: IDs rotieren (GBFS-Datenschutz).</small></p>
+<div class="scroll card"><table>
+<tr><th>Anbieter</th><th>Quelle</th><th>Identität</th><th class="n">Fahrzeuge</th><th class="n">Zustandswechsel</th><th class="n">neue IDs/Abruf</th><th class="n">Fahrten (gleiche ID)</th><th>letzte Änderung</th></tr>
+{% for p in s.providers %}
+<tr><td>{{ p.provider }} <small>{{ p.name or '' }}</small></td><td><small>{{ p.source }}</small></td><td><span class="tag">{{ p.mode }}</span></td>
+<td class="n">{{ p.n|num }}</td><td class="n">{{ p.opened|num }}</td>
+<td class="n">{{ ((p.new_ids or 0) / p.polls / p.n)|pct if p.polls and p.n else '–' }}</td>
+<td class="n">{{ p.trips|num }}</td>
+<td class="{{ 'warn' if p.last_change and s.now - p.last_change > 6 * 3600 else '' }}">{{ p.last_change|dt }}</td></tr>
+{% endfor %}
+</table></div>
+
+<h2>Speicher &amp; Sicherung</h2>
+<div class="card"><table>
+<tr><td>Arbeits-DB (letzte {{ cfg.hot_days }} Tage)</td><td class="n">{{ s.storage.hot|mb }}</td></tr>
+<tr><td>Parquet-Archiv (Analyse)</td><td class="n">{{ s.storage.archive|mb }} <small>· archiviert bis {{ s.archived_until or 'noch nichts' }}</small></td></tr>
+<tr><td>Rohdaten (alle {{ cfg.raw_every_min }} min)</td><td class="n">{{ s.storage.raw|mb }}</td></tr>
+<tr><td>DB-Backups lokal</td><td class="n">{{ s.storage.backups|mb }}</td></tr>
+<tr><td>Datenträger</td><td class="n">{{ ((s.storage.disk_total - s.storage.disk_free) / 1e9)|round(1) }} / {{ (s.storage.disk_total / 1e9)|round(1) }} GB belegt</td></tr>
+<tr><td>Letzte Wartung (Archiv, Backup)</td><td class="n">{{ s.last_maintenance|dt }}{% if s.maint_error %} <span class="bad">Fehler: {{ s.maint_error }}</span>{% endif %}</td></tr>
+<tr><td>Upload (Google Drive)</td><td class="n">{{ s.upload or 'noch nie – rclone einrichten (README)' }}</td></tr>
+</table></div>
+
+{% if s.days %}
+<h2>Archivierte Tage</h2>
+<p>{% for d in s.days %}<a href="files/archive/trip/date={{ d }}/part-0.parquet" title="Fahrten {{ d }}">{{ d }}</a>{{ ' · ' if not loop.last }}{% endfor %}</p>
+{% endif %}
+<p><small>Quelle der Daten: sharedmobility.ch (Bundesamt für Energie), nextbike · <a href="api/status">JSON</a></small></p>
+</body></html>

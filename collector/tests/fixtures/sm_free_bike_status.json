@@ -1,0 +1,864 @@
+{
+ "last_updated": 1794842415,
+ "ttl": 60,
+ "version": "2.0",
+ "data": {
+  "bikes": [
+   {
+    "bike_id": "nextbike_ch:vW54NyjQwnmk9w9fkGJ8RAg8oABl1zmO",
+    "lat": 47.169754,
+    "lon": 8.099563,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286234",
+     "ios": "https://app.nextbike.net/station?id=286234",
+     "web": "https://nxtb.it/p/286234"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:qmz5E8JrL6YJPzQS24rLv5gkGbjevad2",
+    "lat": 47.169754,
+    "lon": 8.099563,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286234",
+     "ios": "https://app.nextbike.net/station?id=286234",
+     "web": "https://nxtb.it/p/286234"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:VmZzK1WOjgJEp1JHOQpRlJ6NXyGkE8R3",
+    "lat": 47.169754,
+    "lon": 8.099563,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286234",
+     "ios": "https://app.nextbike.net/station?id=286234",
+     "web": "https://nxtb.it/p/286234"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:AvP71V3WxnvMR8OCkaewykD5aJzbr9BM",
+    "lat": 47.169754,
+    "lon": 8.099563,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286234",
+     "ios": "https://app.nextbike.net/station?id=286234",
+     "web": "https://nxtb.it/p/286234"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:pdyLwe2j8gWOGLOCXA81zOgqEvlA5NRZ",
+    "lat": 47.169754,
+    "lon": 8.099563,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286234",
+     "ios": "https://app.nextbike.net/station?id=286234",
+     "web": "https://nxtb.it/p/286234"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:eZ34GQYqynOGXL4srL9oz2nPA7OrpRlW",
+    "lat": 47.169754,
+    "lon": 8.099563,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286234",
+     "ios": "https://app.nextbike.net/station?id=286234",
+     "web": "https://nxtb.it/p/286234"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:mjp3Z5YwPDeGkEzuZdW97o6JEWOaGAKy",
+    "lat": 47.169754,
+    "lon": 8.099563,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286234",
+     "ios": "https://app.nextbike.net/station?id=286234",
+     "web": "https://nxtb.it/p/286234"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:eZ34GQYqynOGoqaSrL91wLnPA7OrpRlW",
+    "lat": 47.169754,
+    "lon": 8.099563,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286234",
+     "ios": "https://app.nextbike.net/station?id=286234",
+     "web": "https://nxtb.it/p/286234"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:196"
+   },
+   {
+    "bike_id": "nextbike_ch:B4mx1zqE7DbLbbQhEoJpOK69Mk0RbOdw",
+    "lat": 47.171707,
+    "lon": 8.1068,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286235",
+     "ios": "https://app.nextbike.net/station?id=286235",
+     "web": "https://nxtb.it/p/286235"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:lELWreqO8gL3YY9tMzp1GX6dkb9BAjG2",
+    "lat": 47.171585,
+    "lon": 8.111415,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286236",
+     "ios": "https://app.nextbike.net/station?id=286236",
+     "web": "https://nxtb.it/p/286236"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:meAPNpjQJgoaPAPU71Ejppnla350E4Zx",
+    "lat": 47.171585,
+    "lon": 8.111415,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286236",
+     "ios": "https://app.nextbike.net/station?id=286236",
+     "web": "https://nxtb.it/p/286236"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:Gkzo1ZE8Vga9AQ5CLr1zOagl4NXbAYxa",
+    "lat": 47.17295,
+    "lon": 8.110643,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286239",
+     "ios": "https://app.nextbike.net/station?id=286239",
+     "web": "https://nxtb.it/p/286239"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:KwQJMkRNpnyOqZ0FVAGy4qgAoXlOZm9x",
+    "lat": 47.17295,
+    "lon": 8.110643,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=286239",
+     "ios": "https://app.nextbike.net/station?id=286239",
+     "web": "https://nxtb.it/p/286239"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:4Vz7XLdKBnw3XaQfzbe07lnPRamMEW89",
+    "lat": 47.173862,
+    "lon": 8.121092,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=348292",
+     "ios": "https://app.nextbike.net/station?id=348292",
+     "web": "https://nxtb.it/p/348292"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:bL80yoa4mg5qVXBS4zzw5GgPN9MzqQ3J",
+    "lat": 47.173862,
+    "lon": 8.121092,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=348292",
+     "ios": "https://app.nextbike.net/station?id=348292",
+     "web": "https://nxtb.it/p/348292"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:196"
+   },
+   {
+    "bike_id": "nextbike_ch:q5A8MmkpEnPLBwBU5W7GXGnWNKY0zjo2",
+    "lat": 47.16956,
+    "lon": 8.095969,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=348305",
+     "ios": "https://app.nextbike.net/station?id=348305",
+     "web": "https://nxtb.it/p/348305"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:18JX2eK4MD9RPR4cK9E9pAnd0xrm7QPl",
+    "lat": 47.16956,
+    "lon": 8.095969,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=348305",
+     "ios": "https://app.nextbike.net/station?id=348305",
+     "web": "https://nxtb.it/p/348305"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:jy1Nkd4GvnRO5MZhPqj4Py6mRAopVLW7",
+    "lat": 47.16956,
+    "lon": 8.095969,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=348305",
+     "ios": "https://app.nextbike.net/station?id=348305",
+     "web": "https://nxtb.it/p/348305"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:150"
+   },
+   {
+    "bike_id": "nextbike_ch:4wRpYNGxzDj3oXPsV34MQRnQJPkKr1Xy",
+    "lat": 47.16956,
+    "lon": 8.095969,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=348305",
+     "ios": "https://app.nextbike.net/station?id=348305",
+     "web": "https://nxtb.it/p/348305"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:196"
+   },
+   {
+    "bike_id": "nextbike_ch:8YPxep3mKDxQKEpIJo0VornOVGAzd9W7",
+    "lat": 47.177708,
+    "lon": 8.110657,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://app.nextbike.net/station?id=3025174",
+     "ios": "https://app.nextbike.net/station?id=3025174",
+     "web": "https://nxtb.it/p/3025174"
+    },
+    "provider_id": "nextbike_ch",
+    "vehicle_type_id": "nextbike_ch:196"
+   },
+   {
+    "bike_id": "bird-zurich:5426ffea-b1a6-496c-a0e7-939cfc45ed81",
+    "lat": 47.371384,
+    "lon": 8.556033,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:4799963d-37a6-4ff9-98dd-b9d33a3e4efc",
+    "lat": 47.3668,
+    "lon": 8.546283,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:c4e49f8b-1d50-4cf4-b907-5cca2744fe2e",
+    "lat": 47.378372,
+    "lon": 8.54183,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:01a3247f-7603-465f-bbfa-cb44c004e265",
+    "lat": 47.376213,
+    "lon": 8.549051,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:ff46d651-13fe-4b32-979d-85a606af0cd9",
+    "lat": 47.347507,
+    "lon": 8.567606,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:60e1475b-01fc-4494-98cc-2335db0ce0a0",
+    "lat": 47.381645,
+    "lon": 8.524918,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:f8a3cf4b-83fd-4dfc-aaf1-e65b6aa705db",
+    "lat": 47.36095,
+    "lon": 8.520765,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:6d33cac2-93a6-4f26-be4f-23495590939c",
+    "lat": 47.361378,
+    "lon": 8.512837,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:bcac6941-494b-4d08-b3ef-8d3ee14f88c6",
+    "lat": 47.396023,
+    "lon": 8.523374,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:6b4768fb-296c-4fff-9015-ba6898295716",
+    "lat": 47.375004,
+    "lon": 8.522283,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:dff0e16a-3a84-4384-b512-70e332589347",
+    "lat": 47.384727,
+    "lon": 8.533373,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:0ccbe792-65a5-4979-8467-4e706942e23a",
+    "lat": 47.36044,
+    "lon": 8.564389,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:b951689d-e9de-4a3a-93ae-991ad59ffb11",
+    "lat": 47.361786,
+    "lon": 8.564962,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:50455008-41f4-41c8-a726-57ed0cf0fe6b",
+    "lat": 47.372288,
+    "lon": 8.538988,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:c704bc2c-fa0b-4c64-bc7e-1872bf6d35a9",
+    "lat": 47.37354,
+    "lon": 8.534853,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:8fb4a7f7-90ba-4a66-891f-4817f097e545",
+    "lat": 47.396027,
+    "lon": 8.528176,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:1a446c96-d3f2-420a-a1c2-fc93ebd5b7e6",
+    "lat": 47.36019,
+    "lon": 8.567012,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:710472a0-77dc-48b8-bb44-bde4d7ec3c0b",
+    "lat": 47.41536,
+    "lon": 8.544162,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:10c44667-eb57-4d58-a983-5f3255d1294a",
+    "lat": 47.39191,
+    "lon": 8.512593,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:3f3e1d07-23b4-4d79-a601-b9696616ce57",
+    "lat": 47.363964,
+    "lon": 8.51542,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:0dea9e71-9f2e-490c-92df-b1ba9951cf46",
+    "lat": 47.39095,
+    "lon": 8.529631,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:f7da73ba-e17b-4099-aa43-5cd3434c6b05",
+    "lat": 47.3942,
+    "lon": 8.530616,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:b17c7df1-b74d-41ce-b834-85b9022e1886",
+    "lat": 47.372025,
+    "lon": 8.534125,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:0d8b9bcd-9f2d-481c-aff4-95770a94fb99",
+    "lat": 47.36293,
+    "lon": 8.5562105,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "bird-zurich:3bdf1c18-f02e-48c2-bdb0-ab19499dcbcc",
+    "lat": 47.36019,
+    "lon": 8.53691,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "bird-zurich",
+    "vehicle_type_id": "bird-zurich:bae2102b-56ba-42ba-9097-720e5990b4b2"
+   },
+   {
+    "bike_id": "velospot:ca4bf3d3-5b42-469b-9b60-1347d97f776f",
+    "lat": 47.54915,
+    "lon": 7.5822787,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "velospot",
+    "vehicle_type_id": "velospot:mbike"
+   },
+   {
+    "bike_id": "velospot:3b1e7d08-c97f-4cc3-9982-93575af10ebd",
+    "lat": 46.45303,
+    "lon": 6.8543143,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "velospot",
+    "vehicle_type_id": "velospot:hbike"
+   },
+   {
+    "bike_id": "velospot:a4dd99ef-7ee8-45c4-bc91-1da2471d1dbc",
+    "lat": 47.55756,
+    "lon": 7.5647635,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "velospot",
+    "vehicle_type_id": "velospot:mbike"
+   },
+   {
+    "bike_id": "velospot:580f005f-f10f-4689-bbc0-a98583a75bf3",
+    "lat": 47.534912,
+    "lon": 8.21971,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "velospot",
+    "vehicle_type_id": "velospot:ebike"
+   },
+   {
+    "bike_id": "velospot:c728cf2a-fd98-4094-8f68-2f437b0d2b94",
+    "lat": 47.535324,
+    "lon": 8.221411,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "velospot",
+    "vehicle_type_id": "velospot:ebike"
+   },
+   {
+    "bike_id": "velospot:d7f0a9b1-1cf9-43af-8f89-f53335b24e83",
+    "lat": 47.528862,
+    "lon": 8.2315645,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "velospot",
+    "vehicle_type_id": "velospot:ebike"
+   },
+   {
+    "bike_id": "velospot:a01c79ea-59fd-45fd-8dd9-67e6452fe7a8",
+    "lat": 47.536774,
+    "lon": 8.227525,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "velospot",
+    "vehicle_type_id": "velospot:ebike"
+   },
+   {
+    "bike_id": "velospot:acfd3382-62ca-4442-ab24-37ba31ce9be9",
+    "lat": 47.55132,
+    "lon": 8.229139,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "velospot",
+    "vehicle_type_id": "velospot:ebike"
+   },
+   {
+    "bike_id": "velospot:80c2081d-8ff6-46c1-b924-c52126a617a8",
+    "lat": 47.53908,
+    "lon": 8.229492,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "velospot",
+    "vehicle_type_id": "velospot:ebike"
+   },
+   {
+    "bike_id": "velospot:7ef35dbe-49e9-410f-a3cd-4b1ee535e2f7",
+    "lat": 47.53831,
+    "lon": 8.229827,
+    "is_reserved": false,
+    "is_disabled": false,
+    "provider_id": "velospot",
+    "vehicle_type_id": "velospot:ebike"
+   },
+   {
+    "bike_id": "voiscooters.com:8eaf7ffa-0f93-4983-bb03-4ea54394b667",
+    "lat": 47.572533,
+    "lon": 7.562478,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:ab5f7bd8-167f-4232-8f1d-52848f965ef1",
+    "lat": 47.557365,
+    "lon": 7.575118,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:19a5b3a4-6928-4459-b2a5-ffa2c1a317c5",
+    "lat": 47.554184,
+    "lon": 7.585801,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:78e6d9d2-990b-4601-b1dc-e9a6691e1612",
+    "lat": 47.51728,
+    "lon": 7.569693,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_bike"
+   },
+   {
+    "bike_id": "voiscooters.com:c1ba720f-d87e-4c9a-a72d-807670890496",
+    "lat": 47.571934,
+    "lon": 7.577845,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:7d16454c-cde8-421e-a6f0-b6b483050027",
+    "lat": 47.549755,
+    "lon": 7.606291,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:44a3d15e-b0fd-40d8-8708-c31ef27e889a",
+    "lat": 47.55625,
+    "lon": 7.581572,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:84626f37-6ebe-4cd2-8793-75b0efa463b8",
+    "lat": 47.585922,
+    "lon": 7.666211,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_bike"
+   },
+   {
+    "bike_id": "voiscooters.com:843436f9-c8d8-4ed3-93ba-5753bb3c49a9",
+    "lat": 47.522636,
+    "lon": 7.618723,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:1114fca5-6a26-4d1f-8fd4-319d8de3c33e",
+    "lat": 47.548985,
+    "lon": 7.59355,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:ba3e679e-b064-4434-93eb-69503e22989a",
+    "lat": 47.551685,
+    "lon": 7.550864,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:869a2a73-4797-4fe3-8511-2b499e4987a9",
+    "lat": 47.548443,
+    "lon": 7.588387,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:aafe7498-6ffb-4ede-a156-e14b886f3c3f",
+    "lat": 47.561913,
+    "lon": 7.573971,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:2ea3931d-f4a5-4089-ac30-29b1d7aa3a10",
+    "lat": 47.548492,
+    "lon": 7.587405,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_bike"
+   },
+   {
+    "bike_id": "voiscooters.com:6c725da3-45e8-4eda-ac01-4ae2179187d2",
+    "lat": 47.566475,
+    "lon": 7.58038,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:3f54107f-2bfc-4ead-9f63-bafb454f5727",
+    "lat": 47.518017,
+    "lon": 7.602914,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:55b41819-1278-4d47-add3-216caf15f216",
+    "lat": 47.548447,
+    "lon": 7.587943,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:f79afbd2-8af9-434b-8d39-9c638d349427",
+    "lat": 47.525642,
+    "lon": 7.611739,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_bike"
+   },
+   {
+    "bike_id": "voiscooters.com:551581c5-8117-4815-a2d7-1a1ba4658f5f",
+    "lat": 47.58907,
+    "lon": 7.65167,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   },
+   {
+    "bike_id": "voiscooters.com:19d53725-edd7-4307-a00e-aaac9e120a05",
+    "lat": 47.53896,
+    "lon": 7.556481,
+    "is_reserved": false,
+    "is_disabled": false,
+    "rental_uris": {
+     "android": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch",
+     "ios": "https://lqfa.adj.st/closest_vehicle?adj_t=b2hnabv&adj_deep_link=voiapp%3A%2F%2Fnearest&adj_campaign=bfe.admin.ch"
+    },
+    "provider_id": "voiscooters.com",
+    "vehicle_type_id": "voiscooters.com:voi_scooter"
+   }
+  ]
+ }
+}
