@@ -2,7 +2,7 @@
 # Lädt neue Backups aus /backups zum rclone-Remote hoch und löscht dort alte.
 # Schreibt das Ergebnis nach /backups/upload-status.txt (die Web-GUI zeigt es an).
 REMOTE="${BACKUP_REMOTE:-gdrive:nextbike-backups}"
-KEEP="${BACKUP_KEEP_DAYS:-30}"
+KEEP="${BACKUP_KEEP_DAYS:-14}"
 INTERVAL="${BACKUP_UPLOAD_INTERVAL:-3600}"
 STATUS=/backups/upload-status.txt
 

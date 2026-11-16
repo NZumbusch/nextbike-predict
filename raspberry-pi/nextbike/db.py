@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS obs (
   bikes INTEGER NOT NULL, ebikes INTEGER NOT NULL, booked INTEGER NOT NULL,
   PRIMARY KEY (uid, wslot, ts)
 ) WITHOUT ROWID;
-CREATE INDEX IF NOT EXISTS obs_ts ON obs (ts);
+DROP INDEX IF EXISTS obs_ts;  -- bewusst kein ts-Index: spart ≈ 40 % Platz, Export läuft in Schlüssel-Reihenfolge
 CREATE TABLE IF NOT EXISTS station_change (
   ts INTEGER NOT NULL, uid INTEGER NOT NULL,
   bikes INTEGER, ebikes INTEGER, booked INTEGER, active INTEGER,  -- NULL = Station aus dem Feed verschwunden
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT NOT NULL);
 EXPORT_TABLES = {
     "stations": "SELECT * FROM stations ORDER BY uid",
     "bikes": "SELECT * FROM bikes ORDER BY number",
-    "obs": "SELECT * FROM obs WHERE ts >= ? ORDER BY ts, uid",
+    "obs": "SELECT * FROM obs WHERE ts >= ?",  # Reihenfolge: Station, Wochen-Slot, Zeit
     "station_change": "SELECT * FROM station_change WHERE ts >= ? ORDER BY ts, uid",
     "bike_event": "SELECT * FROM bike_event WHERE ts >= ? ORDER BY ts, bike",
     "trip": "SELECT * FROM trip WHERE end_ts >= ? ORDER BY end_ts, id",
