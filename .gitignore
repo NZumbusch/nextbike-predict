@@ -1,12 +1,23 @@
+# gemeinsam
+*.log
+.env
+.env.*
+!.env.example
+
+# cloudflare/
 node_modules/
 .wrangler/
 dist/
 coverage/
 export/
-# Secrets – niemals committen
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
-.env
-.env.*
-*.log
+
+# raspberry-pi/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+raspberry-pi/data/
+raspberry-pi/rclone/
