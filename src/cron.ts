@@ -35,7 +35,7 @@ export async function runCron(env: Env, nowMs: number, fetcher: typeof fetch = f
   const ts = Math.floor(nowMs / 300_000) * 300;
   let feed;
   try {
-    feed = await fetchFeed(FEED_URL, CITY_ID, MIN_PLACES, fetcher);
+    feed = await fetchFeed(env.FEED_URL || FEED_URL, CITY_ID, MIN_PLACES, fetcher);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error(`[cron ${ts}] Feed-Fehler: ${msg} – nichts geschrieben`);

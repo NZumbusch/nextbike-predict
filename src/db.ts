@@ -10,6 +10,8 @@ export interface Env {
   API_TOKEN?: string;
   SNAPSHOT_RETENTION_DAYS?: string;
   RAW_RETENTION_DAYS?: string;
+  /** optional: anderer Feed (nur für lokale Tests, z. B. Fixture-Server) */
+  FEED_URL?: string;
 }
 
 /** Snapshot-Eintrag: [uid, bikes, ebikes] bzw. [uid, bikes, ebikes, 0] bei inaktiver Station */
