@@ -78,6 +78,12 @@ Unsicherheit ist ehrlich ausgewiesen.
 Sammler automatisch und verfolgt sie über die Position (`id_mode = 'pos'`, Schlüssel `@lat,lon,typ#n`).
 Geparkte Fahrzeuge bleiben so ein einziger Zustand, statt jede Minute „neu“ zu sein.
 
+**Bekannte Eigenheiten der Daten** (bewusst *nicht* weggefiltert, damit nichts verloren geht):
+- `visible_move`-Fahrten von 100–500 m innerhalb einer Minute, die kurz danach exakt zurückspringen, sind
+  Positions-Ausreisser im Feed. Beobachtet z. B. bei nextbike: Station → frei abgestellt 526 m weg → zurück.
+  In der Analyse lassen sie sich als „Hin- und Rücksprung desselben Fahrzeugs innerhalb weniger Minuten“ filtern.
+- Einige Trottinett-Anbieter melden Fahrzeuge während der Fahrt weiter als verfügbar, was ebenfalls als `visible_move` erscheint.
+
 **Schutz vor Scheindaten:** Fehlt ein Anbieter mit ≥ 10 Fahrzeugen in einem Abruf komplett (Teilausfall
 beim Aggregator), bleiben seine Zustände bis zu 6 h offen, statt Hunderte Scheinfahrten zu erzeugen. Bleibt
 der Feed unverändert (gleiches `last_updated`), wird nichts geschlossen.
