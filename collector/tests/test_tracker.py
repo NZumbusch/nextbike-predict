@@ -26,6 +26,14 @@ def test_spells_only_on_change():
     assert t.open_v[("p", "a")].last_ts == T0 + 60 * 179
 
 
+def test_start_reasons():
+    t = Tracker("src")
+    r = lambda ch: [dict(zip(V_COLS, x))["start_reason"] for x in ch.v_open]  # noqa: E731
+    assert r(t.apply(snap(T0, [V("a")]))) == ["initial"]
+    assert r(t.apply(snap(T0 + 60, [V("a"), V("b")]))) == ["appeared"]
+    assert r(t.apply(snap(T0 + 120, [V("a", lat=47.01), V("b", reserved=True)]))) == ["moved", "changed"]
+
+
 def test_ride_with_uncertainty_windows():
     t = Tracker("src")
     t.apply(snap(T0, [V("a")]))
@@ -125,7 +133,7 @@ def test_restore_continues_trip_after_restart():
     t.apply(snap(T0, [V("a")]))
     ch = t.apply(snap(T0 + 60, []))
     rows_open = []
-    closed = {**dict(zip(V_COLS, t._vid and (1, "src", "p", "a", None, "id", "bike", 47.0, 8.0, None, 0, 0, None, T0, None))),
+    closed = {**dict(zip(V_COLS, (1, "src", "p", "a", None, "id", "bike", 47.0, 8.0, None, 0, 0, None, T0, None, "initial"))),
               "end_ts": T0, "end_next_ts": T0 + 60, "end_reason": "gone"}
     t2 = Tracker("src")
     t2.restore(iter(rows_open), iter([]), iter([closed]), T0 + 60, None, {})

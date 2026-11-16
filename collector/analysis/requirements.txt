@@ -1,0 +1,3 @@
+# Für die Analyse auf dem Laptop (nicht auf dem Pi nötig)
+duckdb>=1.1
+pandas>=2.2

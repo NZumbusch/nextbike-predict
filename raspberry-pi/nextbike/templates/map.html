@@ -1,8 +1,0 @@
-{% extends "base.html" %}
-{% block title %}Karte{% endblock %}
-{% block head %}<meta http-equiv="refresh" content="120">{% endblock %}
-{% block body %}
-<h1>Karte</h1>
-<p class="muted">Stand {{ ts|hm if ts else '–' }} · Kreisgrösse ~ Anzahl Velos · <span style="color:var(--mine)">●</span> meine Stationen · <span style="color:var(--ff)">●</span> frei abgestellte Velos · leerer Kreis = keine Velos · Klick → Station</p>
-{{ svgmap }}
-{% endblock %}

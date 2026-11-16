@@ -25,9 +25,10 @@ CREATE TABLE IF NOT EXISTS vehicle_spell (
   range_m INTEGER,               -- Restreichweite zu Beginn
   start_ts INTEGER NOT NULL,     -- erste Beobachtung in diesem Zustand
   start_prev_ts INTEGER,         -- letzte Beobachtung davor (NULL = unbekannt, z. B. erster Abruf)
+  start_reason TEXT NOT NULL,    -- initial | appeared (Ankunft) | moved | changed | rekey
   end_ts INTEGER,                -- letzte Beobachtung (NULL = Zustand dauert an)
   end_next_ts INTEGER,           -- erste Beobachtung danach
-  end_reason TEXT                -- gone | moved | changed | rekey
+  end_reason TEXT                -- gone (Abfahrt) | moved | changed | rekey
 );
 CREATE INDEX IF NOT EXISTS vehicle_spell_open ON vehicle_spell (source) WHERE end_ts IS NULL;
 CREATE INDEX IF NOT EXISTS vehicle_spell_end ON vehicle_spell (end_ts);

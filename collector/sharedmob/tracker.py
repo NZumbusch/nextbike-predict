@@ -86,7 +86,7 @@ class Changes:
 
 # Spaltenreihenfolge der Tupel (muss zu store.py passen)
 V_COLS = ("id", "source", "provider", "vehicle_id", "raw_id", "id_mode", "vehicle_type", "lat", "lon", "station_id",
-          "reserved", "disabled", "range_m", "start_ts", "start_prev_ts")
+          "reserved", "disabled", "range_m", "start_ts", "start_prev_ts", "start_reason")
 S_COLS = ("id", "source", "provider", "station_id", "bikes", "docks", "is_installed", "is_renting", "is_returning", "by_type",
           "start_ts", "start_prev_ts")
 T_COLS = ("source", "provider", "vehicle_id", "vehicle_type", "kind", "dep_ts", "dep_next_ts", "arr_prev_ts", "arr_ts",
@@ -197,10 +197,11 @@ class Tracker:
             self._prune(ts)
         return ch
 
-    def _open_v(self, ch: Changes, key: VKey, v: VehicleObs, mode: str, ts: int, prev_ts: int | None) -> OpenV:
+    def _open_v(self, ch: Changes, key: VKey, v: VehicleObs, mode: str, ts: int, prev_ts: int | None, reason: str) -> OpenV:
         o = OpenV(self._vid(), v, key[1], ts, ts)
         ch.v_open.append((o.id, self.source, key[0], key[1], v.vehicle_id if key[1] != v.vehicle_id else None, mode,
-                          v.vehicle_type, v.lat, v.lon, v.station_id, int(v.reserved), int(v.disabled), v.range_m, ts, prev_ts))
+                          v.vehicle_type, v.lat, v.lon, v.station_id, int(v.reserved), int(v.disabled), v.range_m, ts, prev_ts,
+                          reason))
         self.open_v[key] = o
         return o
 
@@ -236,7 +237,7 @@ class Tracker:
             moved = d is not None and d > self.tol
             if moved or o.obs.state_key() != v.state_key():
                 ch.v_close.append((o.last_ts, ts, "moved" if moved else "changed", o.id))
-                n = self._open_v(ch, key, v, mode, ts, o.last_ts)
+                n = self._open_v(ch, key, v, mode, ts, o.last_ts, "moved" if moved else "changed")
                 stats[key[0]][7] += 1
                 stats[key[0]][8] += 1
                 if moved and mode == "id" and d >= self.trip_min:
@@ -247,7 +248,8 @@ class Tracker:
             if key in self.open_v:
                 continue
             first_after_rekey = key[0] in switched
-            n = self._open_v(ch, key, v, mode, ts, None if first_after_rekey else prev_ts)
+            reason = "rekey" if first_after_rekey else ("initial" if prev_ts is None else "appeared")
+            n = self._open_v(ch, key, v, mode, ts, None if first_after_rekey else prev_ts, reason)
             stats[key[0]][7] += 1
             ref = self.recent.pop(key, None) if mode == "id" else None
             if ref is None:
