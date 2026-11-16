@@ -78,6 +78,7 @@ class Changes:
     trips: list[tuple] = field(default_factory=list)
     provider_stats: list[tuple] = field(default_factory=list)
     mode_switches: list[tuple[str, str]] = field(default_factory=list)
+    rekeyed: list[str] = field(default_factory=list)   # Anbieter mit einmaliger Komplett-Neuvergabe der IDs
 
     @property
     def n_vehicle_changes(self) -> int:
@@ -98,7 +99,7 @@ class Tracker:
     def __init__(self, source: str, *, move_tolerance_m: float = 25, trip_min_distance_m: float = 100,
                  round_trip_min_s: int = 300, trip_link_max_h: float = 72, id_strategy: str = "auto",
                  position_providers: list[str] | None = None, auto_churn_threshold: float = 0.5,
-                 provider_absent_close_s: int = 6 * 3600,
+                 provider_absent_close_s: int = 6 * 3600, reshuffle_limit: int = 3,
                  next_vehicle_id: Callable[[], int] | None = None, next_station_id: Callable[[], int] | None = None):
         self.source = source
         self.tol = move_tolerance_m
@@ -121,6 +122,9 @@ class Tracker:
         # Teilausfall-Schutz: fehlt ein Anbieter komplett, bleiben seine Zustände offen
         self.absent_close_s = provider_absent_close_s
         self.absent_since: dict[tuple[str, str], int] = {}   # (v|s, Anbieter) → seit
+        # Komplett-Neuvergaben der IDs je Anbieter (Zeitpunkte, 24 h) – ab reshuffle_limit ⇒ Positions-Identität
+        self.reshuffle_limit = reshuffle_limit
+        self.reshuffles: dict[str, list[int]] = {}
 
     def _absent(self, kind: str, present: set[str], open_counts: dict[str, int], ts: int, min_fleet: int = 10) -> set[str]:
         """Anbieter, die gerade komplett fehlen und (noch) nicht geschlossen werden sollen.
@@ -159,9 +163,17 @@ class Tracker:
             gone_ids = len(prev - raw) if prev is not None else 0
             if (self.strategy == "auto" and self.mode_for(prov) == "id" and prev is not None and len(raw) >= 20
                     and new_ids / len(raw) > self.churn):
-                self.prov_mode[prov] = "pos"
-                ch.mode_switches.append((prov, "pos"))
-                log.warning("[%s] %s wechselt %d/%d IDs pro Abruf → Positions-Identität", self.source, prov, new_ids, len(raw))
+                hist = [t for t in self.reshuffles.get(prov, []) if t > ch.obs_ts - 86400] + [ch.obs_ts]
+                self.reshuffles[prov] = hist
+                if len(hist) >= self.reshuffle_limit:
+                    self.prov_mode[prov] = "pos"
+                    ch.mode_switches.append((prov, "pos"))
+                    log.warning("[%s] %s vergibt IDs laufend neu (%d× in 24 h, zuletzt %d/%d) → Positions-Identität",
+                                self.source, prov, len(hist), new_ids, len(raw))
+                else:
+                    ch.rekeyed.append(prov)
+                    log.info("[%s] %s: Komplett-Neuvergabe der IDs (%d/%d) – Zustände neu verknüpft, keine Fahrten abgeleitet",
+                             self.source, prov, new_ids, len(raw))
             self.prev_raw_ids[prov] = raw
             mode = self.mode_for(prov)
             if mode == "pos":
@@ -214,7 +226,7 @@ class Tracker:
     def _vehicles(self, vehicles: list[VehicleObs], ts: int, ch: Changes) -> None:
         prev_ts = self.last_v_ts
         cur = self._keyed(vehicles, ch)
-        switched = {p for p, _ in ch.mode_switches}
+        switched = {p for p, _ in ch.mode_switches} | set(ch.rekeyed)
         stats = {row[2]: row for row in ch.provider_stats}
         hold = self._absent("v", {k[0] for k in cur}, _count_providers(self.open_v), ts)
         for key in list(self.open_v):

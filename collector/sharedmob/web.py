@@ -7,20 +7,17 @@ from __future__ import annotations
 
 import hmac
 import os
-import shutil
 import time
 from datetime import datetime
 from pathlib import Path
 
 from flask import Flask, Response, abort, after_this_request, g, jsonify, render_template, request, send_file
 
-from .archive import TZ
+from . import charts
+from .archive import TZ, local_date
 from .config import Config, load_config
 from .store import connect
-
-
-def dir_size(p: Path) -> int:
-    return sum(f.stat().st_size for f in p.rglob("*") if f.is_file()) if p.exists() else 0
+from .usage import usage
 
 
 def create_app(cfg: Config | None = None) -> Flask:
@@ -34,10 +31,11 @@ def create_app(cfg: Config | None = None) -> Flask:
         pct=lambda x: "–" if x is None else f"{x * 100:.1f} %",
     )
 
+    # Schema einmal sicherstellen (neue Tabellen nach einem Update, auch wenn der Sammler noch nicht lief)
+    connect(cfg.db_path).close()
+
     def db():
         if "db" not in g:
-            if not cfg.db_path.exists():
-                connect(cfg.db_path).close()
             g.db = connect(cfg.db_path, readonly=True)
         return g.db
 
@@ -86,8 +84,15 @@ def create_app(cfg: Config | None = None) -> Flask:
         names = dict(c.execute("SELECT provider, name FROM provider_info").fetchall())
         rows = {t: c.execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in ("vehicle_spell", "station_spell", "trip", "poll")}
         meta = dict(c.execute("SELECT k, v FROM meta").fetchall())
-        du = shutil.disk_usage(cfg.data_dir if cfg.data_dir.exists() else ".")
         up = cfg.data_dir / "upload-status.txt"
+        gaps = [dict(r) for r in c.execute("SELECT * FROM gap ORDER BY start_ts DESC LIMIT 200")]
+        wd_state = cfg.data_dir / "watchdog-state.json"
+        try:
+            import json as _json
+
+            alerts = {k: v for k, v in _json.loads(wd_state.read_text("utf-8")).items() if isinstance(v, dict) and v.get("active")}
+        except (OSError, ValueError):
+            alerts = None
         hb = cfg.data_dir / "heartbeat"
         return {
             "now": now,
@@ -95,14 +100,10 @@ def create_app(cfg: Config | None = None) -> Flask:
             "sources": sources,
             "providers": [{**dict(p), "name": names.get(p["provider"]), "trips": trips.get(f"{p['source']}|{p['provider']}", 0)} for p in providers],
             "rows": rows,
-            "storage": {
-                "hot": sum(f.stat().st_size for f in cfg.db_path.parent.glob("*") if f.is_file()) if cfg.db_path.parent.exists() else 0,
-                "archive": dir_size(cfg.archive_dir),
-                "raw": dir_size(cfg.raw_dir),
-                "backups": dir_size(cfg.backup_dir),
-                "disk_free": du.free,
-                "disk_total": du.total,
-            },
+            "storage": usage(cfg, local_date(now)),
+            "gaps": gaps,
+            "gaps_30d": sum(g["duration_s"] for g in gaps if g["end_ts"] >= now - 30 * 86400),
+            "alerts": alerts,
             "archived_until": meta.get("archived_until"),
             "last_maintenance": int(meta["last_maintenance"]) if meta.get("last_maintenance") else None,
             "maint_error": meta.get("maint_error"),
@@ -112,7 +113,37 @@ def create_app(cfg: Config | None = None) -> Flask:
 
     @app.get("/")
     def index():
-        return render_template("status.html", s=status(), cfg=cfg)
+        s = status()
+        now = s["now"]
+        firsts = dict(db().execute("SELECT source, min(ts) FROM poll GROUP BY source").fetchall())
+        s["gap_timeline"] = {src.id: charts.timeline([g for g in s["gaps"] if g["source"] == src.id], now - 14 * 86400, now,
+                                                     firsts.get(src.id)) for src in cfg.sources}
+        return render_template("status.html", s=s, cfg=cfg)
+
+    @app.get("/provider/<source>/<path:provider>")
+    def provider_page(source: str, provider: str):
+        c = db()
+        now = int(time.time())
+        days = min(max(request.args.get("d", 4, type=int), 1), cfg.hot_days)
+        t0 = now - days * 86400
+        rows = c.execute("SELECT * FROM provider_stat WHERE source = ? AND provider = ? AND ts >= ? ORDER BY ts",
+                         (source, provider, t0)).fetchall()
+        if not rows and not c.execute("SELECT 1 FROM provider_stat WHERE source = ? AND provider = ? LIMIT 1", (source, provider)).fetchone():
+            abort(404)
+        n = [(r["ts"], r["n_vehicles"]) for r in rows]
+        act = [(r["ts"], (r["n_opened"] or 0) / max(1, r["n_polls"])) for r in rows]
+        churn = [(r["ts"], (r["n_new_ids"] or 0) / max(1, r["n_polls"]) / max(1, r["n_vehicles"] or 1)) for r in rows]
+        info = c.execute("SELECT * FROM provider_info WHERE provider = ?", (provider,)).fetchone()
+        tr = c.execute("SELECT count(*) n, coalesce(sum(kind = 'ride'), 0) rides FROM trip WHERE source = ? AND provider = ? AND arr_ts >= ?",
+                       (source, provider, t0)).fetchone()
+        modes = sorted({r["id_mode"] for r in rows if r["id_mode"]})
+        return render_template(
+            "provider.html", cfg=cfg, source=source, provider=provider, info=info, days=days, modes=modes, trips=tr,
+            last=rows[-1] if rows else None,
+            ch_n=charts.line_chart(n, t0, now, "Fahrzeuge im Feed"),
+            ch_act=charts.line_chart(act, t0, now, "Zustandswechsel pro Abruf (Aktivität)", bars=True),
+            ch_churn=charts.line_chart(churn, t0, now, "Anteil neuer IDs pro Abruf", pct=True, ymax=1.0),
+        )
 
     @app.get("/api/status")
     def api_status():

@@ -33,7 +33,9 @@ DAILY = {
     "trip": "arr_ts",
     "poll": "ts",
     "provider_stat": "ts",
+    "gap": "end_ts",
 }
+KEEP_IN_HOT = {"gap"}  # klein, bleibt für die Statusseite vollständig in der Arbeits-DB
 OPEN = {"vehicle_spell": "end_ts IS NULL", "station_spell": "end_ts IS NULL"}
 DIMS = ("station_info", "provider_info", "vehicle_type_info", "bike_info")
 _SQL2ARROW = {"INTEGER": pa.int64(), "REAL": pa.float64(), "TEXT": pa.string()}
@@ -127,7 +129,8 @@ def run_archive(db_path: Path, archive_dir: Path, hot_days: int, now: float | No
             keep_from = day_bounds(date.fromisoformat(r["v"]) - timedelta(days=hot_days - 1))[0]
             with conn:
                 for table, col in DAILY.items():
-                    conn.execute(f"DELETE FROM {table} WHERE {col} < ?", (keep_from,))
+                    if table not in KEEP_IN_HOT:
+                        conn.execute(f"DELETE FROM {table} WHERE {col} < ?", (keep_from,))
             conn.execute("PRAGMA optimize")
     finally:
         conn.close()

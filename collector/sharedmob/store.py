@@ -97,6 +97,16 @@ CREATE TABLE IF NOT EXISTS bike_info (
   first_seen INTEGER NOT NULL, last_seen INTEGER NOT NULL,
   PRIMARY KEY (source, provider, vehicle_id)
 ) WITHOUT ROWID;
+-- Datenlücken: Zeiträume ohne frische Daten einer Quelle (für die Analyse wichtig: "keine Daten" ≠ "keine Fahrten")
+CREATE TABLE IF NOT EXISTS gap (
+  source TEXT NOT NULL,
+  start_ts INTEGER NOT NULL,     -- letzter frischer Abruf vor der Lücke
+  end_ts INTEGER NOT NULL,       -- erster frischer Abruf danach
+  duration_s INTEGER NOT NULL,
+  reason TEXT NOT NULL,          -- collector_down | fetch_error | stale_feed
+  n_failed INTEGER NOT NULL, n_stale INTEGER NOT NULL,
+  PRIMARY KEY (source, start_ts)
+) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT NOT NULL);
 """
 
@@ -217,6 +227,22 @@ class Store:
                      last_seen = excluded.last_seen""",
                 [(src, p, v, t, ts, ts) for (p, v), t in snap.bike_types.items()],
             )
+
+    def last_fresh_poll(self, source: str) -> int | None:
+        return self.conn.execute("SELECT max(ts) FROM poll WHERE source = ? AND ok = 1 AND stale = 0", (source,)).fetchone()[0]
+
+    def record_gap(self, source: str, start_ts: int, end_ts: int) -> dict:
+        """Lücke zwischen zwei frischen Abrufen einordnen und speichern."""
+        c = self.conn
+        failed, stale = c.execute(
+            "SELECT coalesce(sum(ok = 0), 0), coalesce(sum(ok = 1 AND stale = 1), 0) FROM poll WHERE source = ? AND ts > ? AND ts < ?",
+            (source, start_ts, end_ts)).fetchone()
+        reason = "collector_down" if failed + stale == 0 else ("fetch_error" if failed >= stale else "stale_feed")
+        row = {"source": source, "start_ts": start_ts, "end_ts": end_ts, "duration_s": end_ts - start_ts,
+               "reason": reason, "n_failed": failed, "n_stale": stale}
+        with c:
+            c.execute("INSERT OR REPLACE INTO gap VALUES (:source, :start_ts, :end_ts, :duration_s, :reason, :n_failed, :n_stale)", row)
+        return row
 
     def size_bytes(self) -> int:
         return sum(p.stat().st_size for p in self.path.parent.glob(self.path.name + "*") if p.exists())

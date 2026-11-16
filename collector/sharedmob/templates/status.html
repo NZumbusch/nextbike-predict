@@ -15,12 +15,19 @@ h1{font-size:1.3rem;margin:.3rem 0}h2{font-size:1.05rem;margin:1.5rem 0 .5rem}
 th,td{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left}td.n,th.n{text-align:right}
 .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}.muted,small{color:var(--muted)}
 .tag{font-size:.75rem;padding:0 6px;border:1px solid var(--line);border-radius:8px}
+.chart{width:100%;height:auto;display:block}.chart .grid{stroke:var(--line)}.chart .ax,.chart .lbl{fill:var(--muted);font-size:10px}
+.chart .lbl{font-size:11px}.chart .ok{fill:var(--ok);opacity:.35}.chart .none{fill:var(--line)}.chart .gap{fill:var(--bad)}
+.alert{border-left:4px solid var(--bad);padding:6px 10px;margin:6px 0;background:var(--card)}
 a{color:var(--ok)}
 </style></head><body>
 <h1>📡 sharedmob – Sammler</h1>
 {% set hb_age = (s.now - s.heartbeat) if s.heartbeat else None %}
 <p>{% if hb_age is not none and hb_age < 300 %}<span class="ok">● läuft</span>{% else %}<span class="bad">● Sammler meldet sich nicht</span>{% endif %}
  · letzter Durchgang vor {{ s.heartbeat|ago }} · Stand {{ s.now|dt }}</p>
+
+{% if s.alerts %}{% for k, a in s.alerts.items() %}
+<div class="alert">⚠ <b>{{ k }}</b> – aktiv seit {{ a.since|dt }}</div>
+{% endfor %}{% elif s.alerts is none %}<p><small class="muted">Watchdog noch nicht aktiv (Push-Meldungen: siehe README).</small></p>{% endif %}
 
 <div class="kpis">
   <div class="kpi"><b>{{ s.rows.vehicle_spell|num }}</b><span>Fahrzeug-Zustände (Arbeits-DB)</span></div>
@@ -44,13 +51,23 @@ a{color:var(--ok)}
 {% endfor %}
 </table></div>
 
+<h2>Datenlücken (letzte 14 Tage)</h2>
+{% for src in cfg.sources %}<p style="margin:.2rem 0"><small><b>{{ src.id }}</b></small></p>{{ s.gap_timeline[src.id] }}{% endfor %}
+<p><small>Grün = Daten, grau = vor Beginn der Sammlung (bzw. vor der Aufbewahrung der Arbeits-DB), rot = keine frischen Daten (&gt; {{ [180, 3 * cfg.interval_s]|max // 60 }} min). Summe der Lücken (30 Tage): {{ (s.gaps_30d / 60)|round|int }} min.
+Die Lücken landen als Tabelle <code>gap</code> im Archiv, damit die Analyse „keine Daten“ von „keine Fahrten“ unterscheidet.</small></p>
+{% if s.gaps %}<details><summary><small>{{ s.gaps|length }} Lücken im Detail</small></summary><div class="scroll card"><table>
+<tr><th>Quelle</th><th>von</th><th>bis</th><th class="n">Dauer</th><th>Ursache</th><th class="n">Fehler / unverändert</th></tr>
+{% for g in s.gaps[:50] %}<tr><td>{{ g.source }}</td><td>{{ g.start_ts|dt }}</td><td>{{ g.end_ts|dt }}</td><td class="n">{{ (g.duration_s / 60)|round|int }} min</td>
+<td>{{ {'collector_down': 'Sammler lief nicht', 'fetch_error': 'Abruf-Fehler', 'stale_feed': 'Feed nicht aktualisiert'}[g.reason] }}</td><td class="n">{{ g.n_failed }} / {{ g.n_stale }}</td></tr>{% endfor %}
+</table></div></details>{% endif %}
+
 <h2>Anbieter (letzte 24 h)</h2>
 <p><small>Identität: <b>id</b> = Fahrzeug-ID wird verfolgt (bei nextbike direkt: feste Velonummer ⇒ exakte Fahrten). <b>pos</b> = Anbieter wechselt IDs laufend ⇒ Verfolgung über die Position (Abfahrten/Ankünfte, keine Fahrtzuordnung).
 „neue IDs“ = Anteil neuer IDs pro Abruf – hoch heisst: IDs rotieren (GBFS-Datenschutz).</small></p>
 <div class="scroll card"><table>
 <tr><th>Anbieter</th><th>Quelle</th><th>Identität</th><th class="n">Fahrzeuge</th><th class="n">Zustandswechsel</th><th class="n">neue IDs/Abruf</th><th class="n">Fahrten (gleiche ID)</th><th>letzte Änderung</th></tr>
 {% for p in s.providers %}
-<tr><td>{{ p.provider }} <small>{{ p.name or '' }}</small></td><td><small>{{ p.source }}</small></td><td><span class="tag">{{ p.mode }}</span></td>
+<tr><td><a href="provider/{{ p.source }}/{{ p.provider }}">{{ p.provider }}</a> <small>{{ p.name or '' }}</small></td><td><small>{{ p.source }}</small></td><td><span class="tag">{{ p.mode }}</span></td>
 <td class="n">{{ p.n|num }}</td><td class="n">{{ p.opened|num }}</td>
 <td class="n">{{ ((p.new_ids or 0) / p.polls / p.n)|pct if p.polls and p.n else '–' }}</td>
 <td class="n">{{ p.trips|num }}</td>
@@ -60,6 +77,10 @@ a{color:var(--ok)}
 
 <h2>Speicher &amp; Sicherung</h2>
 <div class="card"><table>
+<tr><td><b>Prognose</b></td><td class="n">{% if s.storage.days_left is not none %}
+  Wachstum ≈ {{ s.storage.per_day|mb }}/Tag (Ø {{ s.storage.days_measured }} Tage) ⇒ <b class="{{ 'warn' if s.storage.days_left < 365 else 'ok' }}">voll in ≈
+  {% if s.storage.days_left > 730 %}{{ (s.storage.days_left / 365)|round(1) }} Jahren{% else %}{{ s.storage.days_left }} Tagen{% endif %}</b>
+  {% else %}<small>verfügbar nach dem ersten vollständigen Tag</small>{% endif %}</td></tr>
 <tr><td>Arbeits-DB (letzte {{ cfg.hot_days }} Tage)</td><td class="n">{{ s.storage.hot|mb }}</td></tr>
 <tr><td>Parquet-Archiv (Analyse)</td><td class="n">{{ s.storage.archive|mb }} <small>· archiviert bis {{ s.archived_until or 'noch nichts' }}</small></td></tr>
 <tr><td>Rohdaten (alle {{ cfg.raw_every_min }} min)</td><td class="n">{{ s.storage.raw|mb }}</td></tr>

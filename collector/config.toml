@@ -22,6 +22,14 @@ raw_keep_local_days = 0    # Rohdaten lokal löschen nach N Tagen (0 = nie; Goog
 archive_hour = 2           # ab dieser Stunde wird der Vortag nach Parquet archiviert
 sqlite_backups_keep = 3    # lokale Kopien der Arbeits-DB
 
+[alerts]                   # Push-Meldungen (Dienst "watchdog", ntfy-Thema in .env: NTFY_TOPIC)
+stale_min = 15             # Sammler oder Quelle so lange ohne frische Daten
+disk_free_pct = 10         # weniger freier Speicher in %
+days_left_warn = 60        # Speicher voll in weniger als N Tagen (Prognose)
+upload_stale_h = 3         # so lange kein Upload-Versuch
+provider_min_vehicles = 20 # Anbieter mit ≥ N Fahrzeugen verschwindet aus dem Feed
+repeat_h = 6               # Erinnerung, solange ein Problem besteht
+
 # ---------------------------------------------------------------- Quellen
 # Alle Anbieter der Schweiz über den Aggregator des Bundesamts für Energie (BFE).
 # Lizenz: "Open use. Must provide the source." – Quelle: sharedmobility.ch (BFE)

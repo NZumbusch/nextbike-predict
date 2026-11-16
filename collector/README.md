@@ -13,7 +13,8 @@ Läuft 24/7 auf einem Raspberry Pi in Docker, mit Statusseite im WLAN und automa
 │            → Zustände & Fahrten in SQLite (data/hot)                              │
 │            → alle 6 h Rohfeed komprimiert (data/raw)                              │
 │            → täglich 02:00: Vortag als Parquet (data/archive), DB-Backup          │
-│ web        Statusseite :8080 – läuft alles? Datenqualität? Speicher?              │
+│ web        Statusseite :8080 – läuft alles? Lücken? Datenqualität? Speicher?      │
+│ watchdog   Push aufs Handy (ntfy) bei Ausfall, Speichermangel, Upload-Fehler      │
 │ upload     rclone: data/archive + data/raw stündlich → Google Drive               │
 └──────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -54,6 +55,7 @@ nicht 180. Kleine Positionsänderungen (< 25 m, GPS-Rauschen) und schwankende Ak
 | `trip` | Fahrt eines Fahrzeugs mit gleicher ID: Start, Ziel, Luftlinie, Zeitfenster |
 | `poll` | jeder Abruf: Erfolg, Dauer, Datenmenge, Fehler |
 | `provider_stat` | pro Anbieter und 5 Min: Fahrzeuge, neue/verschwundene IDs, Zustandswechsel (Datenqualität) |
+| `gap` | **Datenlücken**: Zeiträume ohne frische Daten je Quelle, mit Ursache (`collector_down`, `fetch_error`, `stale_feed`) |
 | `station_info`, `provider_info`, `vehicle_type_info`, `bike_info` | Stammdaten |
 
 **Zeitfenster statt Scheingenauigkeit.** Jeder Zustand speichert auch die Beobachtung davor und danach:
@@ -74,9 +76,12 @@ Unsicherheit ist ehrlich ausgewiesen.
 - `round_trip`: ≥ 5 Min weg, zurück am selben Ort.
 - `visible_move`: Wechsel zwischen zwei Abrufen direkt von A nach B (kurze Fahrt oder Umverteilung).
 
-**Identität:** `id_mode = 'id'` verfolgt die Fahrzeug-ID. Anbieter, die IDs ständig wechseln, erkennt der
-Sammler automatisch und verfolgt sie über die Position (`id_mode = 'pos'`, Schlüssel `@lat,lon,typ#n`).
-Geparkte Fahrzeuge bleiben so ein einziger Zustand, statt jede Minute „neu“ zu sein.
+**Identität:** `id_mode = 'id'` verfolgt die Fahrzeug-ID. Vergibt ein Anbieter in einem Abruf (fast) alle IDs
+neu, schliesst der Sammler die Zustände als `rekey` und eröffnet sie neu, ohne Schein-Abfahrten oder -Ankünfte.
+Passiert das **≥ 3× in 24 h**, wird der Anbieter dauerhaft über die Position verfolgt
+(`id_mode = 'pos'`, Schlüssel `@lat,lon,typ#n`). Geparkte Fahrzeuge bleiben so ein einziger Zustand.
+Beobachtet: Bird vergibt jede Minute alle IDs neu, Lime periodisch. Eine seltene Neuvergabe schaltet die
+exakten Fahrten eines Anbieters dagegen nicht ab.
 
 **Bekannte Eigenheiten der Daten** (bewusst *nicht* weggefiltert, damit nichts verloren geht):
 - `visible_move`-Fahrten von 100–500 m innerhalb einer Minute, die kurz danach exakt zurückspringen, sind
@@ -221,6 +226,51 @@ Mit `BACKUP_DIRS=archive raw backups` werden zusätzlich die DB-Kopien hochgelad
 
 ---
 
+## Überwachung
+
+**Statusseite** (`http://<pi>:8080`):
+- Quellen: Erfolgsquote, Dauer, Datenmenge, letzter Fehler.
+- **Zeitleiste der Datenlücken** (14 Tage) mit Ursache.
+- Anbieter-Tabelle: Fahrzeuge, ID-Wechsel, Fahrten. Ein Klick öffnet die **Anbieter-Seite** mit Verlauf über
+  4 Tage (Fahrzeuge im Feed, Aktivität, Anteil neuer IDs). Dort siehst du sofort, wenn ein Anbieter ausfällt
+  oder sein Verhalten ändert.
+- Speicher mit **Prognose** „voll in ≈ X Tagen“, berechnet aus dem Wachstum der letzten bis zu 7 Tage.
+- Status von Archiv, Backup und Upload sowie aktive Warnungen.
+
+**Push-Meldungen aufs Handy** (Dienst `watchdog`, über [ntfy](https://ntfy.sh), gratis, ohne Konto):
+1. App „ntfy“ installieren (Android/iOS) und ein **langes, zufälliges Thema** abonnieren, z. B.
+   `sharedmob-7f3k9q2x`. Wer das Thema kennt, kann mitlesen; die Meldungen enthalten aber nur Betriebsdaten.
+2. Dasselbe Thema in `.env` als `NTFY_TOPIC` eintragen und die Dienste neu starten:
+
+   ```bash
+   docker compose up -d
+   ```
+
+3. Den Versand testen:
+
+   ```bash
+   docker compose exec -u sm watchdog python -m sharedmob.watchdog --test
+   ```
+
+Gemeldet wird (Schwellen in `config.toml`, Abschnitt `[alerts]`):
+
+| Meldung | Wann |
+|---|---|
+| Sammler meldet sich nicht | 15 Min ohne Durchgang |
+| Quelle liefert keine frischen Daten | 15 Min, mit letztem Fehler |
+| Speicher fast voll / bald voll | < 10 % frei bzw. Prognose < 60 Tage |
+| Upload gestört | Upload-Fehler oder 3 h kein Versuch |
+| Anbieter fehlt im Feed | hatte vor 24 h ≥ 20 Fahrzeuge, seit 1 h keine |
+| Neuer Anbieter | erscheint neu im Feed |
+| Wartung fehlgeschlagen | Archiv oder Backup mit Fehler |
+
+Solange ein Problem besteht, wiederholt sich die Meldung alle 6 h. Ist es behoben, kommt „✓ … wieder ok“ mit
+der Dauer. Ohne `NTFY_TOPIC` erscheinen die Meldungen nur im Log (`docker compose logs watchdog`).
+
+Die Prüfung läuft als eigener Dienst, damit sie auch dann meldet, wenn der Sammler hängt. Fällt der ganze
+Pi aus (Strom, Netz), kann er selbst nichts mehr senden. Dafür eignet sich ein externer Ping-Dienst, z. B.
+ein kostenloser Uptime-Check auf `/healthz` über einen Tunnel. Die Lücke selbst wird nach dem Neustart in jedem Fall erfasst.
+
 ## Analyse
 
 Auf dem Laptop mit DuckDB direkt auf den Parquet-Dateien. Die Dateien entweder von Google Drive holen
@@ -259,6 +309,7 @@ Sichten (`analysis/views.sql`):
 | `arrival` | Ankünfte aller Anbieter |
 | `vehicle_spell` | abgeschlossene + offene Fahrzeug-Zustände |
 | `station_spell` | abgeschlossene + offene Stations-Zustände |
+| `gap` | Datenlücken, z. B. um Tage mit Ausfällen aus Auswertungen auszuschliessen |
 | `station_info`, `provider_info`, `bike_info`, `poll`, `provider_stat` | Stammdaten und Betriebsdaten |
 
 `examples.py` enthält: Überblick pro Anbieter, Fahrten pro Stunde, häufigste Verbindungen, Abfahrten pro
@@ -341,6 +392,7 @@ Die Tests laufen ohne Netzwerk, mit Ausschnitten der echten Feeds. Sie decken ab
 - Neustart mitten in einer Fahrt
 - Archiv (auch an Tagen mit Zeitumstellung, 23/25 h), Idempotenz und Aufräumen
 - Rohdaten-Takt, Backup und Statusseite inkl. Zugriffsschutz
+- Lückenerkennung samt Ursachen, Speicherprognose, Watchdog-Meldungen inkl. Wiederholung und Entwarnung
 
 ```
 sharedmob/
@@ -349,7 +401,10 @@ sharedmob/
   store.py       SQLite-Schema, Schreiben, Wiederaufnahme
   archive.py     Parquet-Export, Rohdaten, Backup
   collector.py   Takt, Ablauf, Wartung
-  web.py         Statusseite + /api/status + /healthz
+  web.py         Statusseite, Anbieter-Seiten, /api/status, /healthz
+  charts.py      SVG-Diagramme und Lücken-Zeitleiste
+  usage.py       Speicherverbrauch und Prognose
+  watchdog.py    Überwachung + Push (ntfy)
 analysis/        DuckDB-Sichten, Beispiele
 ```
 

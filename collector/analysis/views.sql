@@ -42,3 +42,7 @@ CREATE OR REPLACE VIEW provider_stat AS
   SELECT * EXCLUDE (date) FROM read_parquet('{ARCHIVE}/provider_stat/*/*.parquet', hive_partitioning = true, union_by_name = true);
 CREATE OR REPLACE VIEW poll AS
   SELECT * EXCLUDE (date) FROM read_parquet('{ARCHIVE}/poll/*/*.parquet', hive_partitioning = true, union_by_name = true);
+
+-- Datenlücken (Zeiträume ohne frische Daten): in Auswertungen ausschliessen bzw. berücksichtigen
+CREATE OR REPLACE VIEW gap AS
+  SELECT * EXCLUDE (date) FROM read_parquet('{ARCHIVE}/gap/*/*.parquet', hive_partitioning = true, union_by_name = true);

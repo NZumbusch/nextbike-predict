@@ -74,14 +74,18 @@ def test_auto_position_identity_for_rotating_ids():
     t = Tracker("src")
     fleet = lambda gen, n=30: [V(f"{gen}-{i}", lat=47 + i * 0.001, prov="bird") for i in range(n)]  # noqa: E731
     t.apply(snap(T0, fleet("x")))
-    ch = t.apply(snap(T0 + 60, fleet("y")))  # alle IDs neu, Positionen gleich
+    for i, gen in enumerate(["y", "z"]):  # Neuvergabe 1 und 2: bleibt bei ID, aber ohne Schein-Fahrten
+        ch = t.apply(snap(T0 + 60 * (i + 1), fleet(gen)))
+        assert ch.rekeyed == ["bird"] and not ch.mode_switches and not ch.trips
+        assert {c[2] for c in ch.v_close} == {"rekey"}
+        assert {dict(zip(V_COLS, o))["start_reason"] for o in ch.v_open} == {"rekey"}
+    ch = t.apply(snap(T0 + 180, fleet("q")))  # 3. Neuvergabe in 24 h ⇒ Positions-Identität
     assert ch.mode_switches == [("bird", "pos")]
-    assert {c[2] for c in ch.v_close} == {"rekey"}
-    ch = t.apply(snap(T0 + 120, fleet("z")))  # ab jetzt stabil über die Position
+    ch = t.apply(snap(T0 + 240, fleet("r")))  # ab jetzt stabil über die Position
     assert not ch.v_open and not ch.v_close
     moved = fleet("w")
     moved[0] = V("w-0", lat=47.5, prov="bird")
-    ch = t.apply(snap(T0 + 180, moved))
+    ch = t.apply(snap(T0 + 300, moved))
     assert len(ch.v_open) == 1 and len(ch.v_close) == 1 and not ch.trips  # Abfahrt + Ankunft, keine erfundene Fahrt
     assert dict(zip(V_COLS, ch.v_open[0]))["vehicle_id"].startswith("@47.50000,8.00000")
 
@@ -144,3 +148,18 @@ def test_restore_continues_trip_after_restart():
 def test_haversine():
     assert round(haversine_m(47.0, 8.0, 47.01, 8.0)) == 1112
     assert haversine_m(None, 8, 47, 8) is None
+
+
+def test_single_reshuffle_keeps_id_tracking():
+    """Seltene Komplett-Neuvergabe (z. B. 1× täglich) darf exakte Fahrten nicht dauerhaft abschalten."""
+    t = Tracker("src")
+    fleet = lambda gen: [V(f"{gen}-{i}", lat=47 + i * 0.001, prov="velo") for i in range(25)]  # noqa: E731
+    t.apply(snap(T0, fleet("a")))
+    t.apply(snap(T0 + 60, fleet("b")))  # einmalige Neuvergabe
+    assert t.mode_for("velo") == "id"
+    b = fleet("b")
+    t.apply(snap(T0 + 120, b[1:]))                       # b-0 ausgeliehen
+    ch = t.apply(snap(T0 + 900, [V("b-0", lat=47.3, prov="velo")] + b[1:]))
+    assert trips(ch)[0]["kind"] == "ride"
+    t.apply(snap(T0 + 2 * 86400, fleet("c")))          # nächste Neuvergabe erst nach > 24 h
+    assert t.mode_for("velo") == "id"

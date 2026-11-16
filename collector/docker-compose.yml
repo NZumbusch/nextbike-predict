@@ -33,6 +33,12 @@ services:
     ports:
       - "${WEB_PORT:-8080}:8080"
 
+  # Prüft jede Minute, ob alles läuft, und schickt Push-Meldungen (ntfy). Eigener Dienst,
+  # damit er auch meldet, wenn der Sammler hängt.
+  watchdog:
+    <<: *app
+    command: ["python", "-m", "sharedmob.watchdog"]
+
   # Lädt Parquet-Archiv und Rohdaten per rclone hoch (z. B. Google Drive). Einrichtung: README.
   upload:
     image: rclone/rclone:1.68.2

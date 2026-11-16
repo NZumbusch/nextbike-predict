@@ -54,6 +54,8 @@ class Collector:
         self.io = ThreadPoolExecutor(max_workers=1, thread_name_prefix="raw")
         self.maint_thread: threading.Thread | None = None
         self.last_ok: dict[str, float] = {}
+        # letzter frischer Abruf je Quelle (auch über Neustarts) ⇒ Lückenerkennung
+        self.last_fresh: dict[str, int | None] = {s.id: self.store.last_fresh_poll(s.id) for s in cfg.sources}
 
     # ------------------------------------------------------------ Takt
     def interval(self, now: float) -> int:
@@ -86,6 +88,8 @@ class Collector:
             else:
                 poll.update(v_changes=ch.n_vehicle_changes, s_changes=len(ch.s_open) + len(ch.s_close), trips=len(ch.trips))
             self.store.write(ch, snap, poll, dict(tr.prov_mode) if ch is not None and ch.mode_switches else None)
+            if not poll["stale"]:
+                self._check_gap(sid, int(now))
             if snap.raw and self.raw.due(sid, snap.obs_ts):
                 self.io.submit(self._write_raw, sid, snap.obs_ts, snap.raw)
             self.last_ok[sid] = now
@@ -99,6 +103,16 @@ class Collector:
         if maintenance:
             self._maybe_maintenance(now)
         return results
+
+    def gap_threshold_s(self) -> int:
+        return max(180, 3 * max(self.cfg.interval_s, self.cfg.night_interval_s))
+
+    def _check_gap(self, sid: str, now: int) -> None:
+        last = self.last_fresh.get(sid)
+        if last is not None and now - last > self.gap_threshold_s():
+            g = self.store.record_gap(sid, last, now)
+            log.warning("[%s] Datenlücke %d min (%s)", sid, g["duration_s"] // 60, g["reason"])
+        self.last_fresh[sid] = now
 
     def _poll(self, src, now: float):
         t0 = time.monotonic()

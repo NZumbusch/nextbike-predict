@@ -30,6 +30,16 @@ class SourceConfig:
 
 
 @dataclass
+class AlertConfig:
+    stale_min: int = 15            # so lange ohne frische Daten ⇒ Meldung
+    disk_free_pct: float = 10.0    # weniger freier Speicher ⇒ Meldung
+    days_left_warn: int = 60       # Speicher voll in weniger Tagen ⇒ Meldung
+    upload_stale_h: float = 3.0    # so lange kein Upload-Versuch ⇒ Meldung
+    provider_min_vehicles: int = 20  # Anbieter mit mind. so vielen Fahrzeugen verschwindet ⇒ Meldung
+    repeat_h: float = 6.0          # Meldung wiederholen, solange das Problem besteht
+
+
+@dataclass
 class Config:
     interval_s: int = 60
     night_interval_s: int = 60
@@ -50,6 +60,7 @@ class Config:
     archive_hour: int = 1
     sqlite_backups_keep: int = 3
     sources: list[SourceConfig] = field(default_factory=list)
+    alerts: AlertConfig = field(default_factory=AlertConfig)
     # Umgebung
     data_dir: Path = Path("data")
     web_token: str = ""
@@ -81,6 +92,7 @@ def load_config(path: str | os.PathLike | None = None, env: dict | None = None) 
     path = Path(path or env.get("CONFIG_PATH", "config.toml"))
     raw = tomllib.loads(path.read_text("utf-8")) if path.exists() else {}
     c, t, s = raw.get("collector", {}), raw.get("tracking", {}), raw.get("storage", {})
+    al = raw.get("alerts", {})
     auth_email = env.get("GBFS_AUTH_EMAIL", "").strip()
     sources = []
     for src in raw.get("sources", []):
@@ -123,6 +135,7 @@ def load_config(path: str | os.PathLike | None = None, env: dict | None = None) 
         archive_hour=int(s.get("archive_hour", 1)),
         sqlite_backups_keep=int(s.get("sqlite_backups_keep", 3)),
         sources=sources,
+        alerts=AlertConfig(**{k: type(getattr(AlertConfig, k))(v) for k, v in al.items() if hasattr(AlertConfig, k)}),
         data_dir=Path(env.get("DATA_DIR", "data")),
         web_token=env.get("WEB_TOKEN", ""),
     )
