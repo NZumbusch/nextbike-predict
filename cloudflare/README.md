@@ -3,10 +3,12 @@
 Kostenloser Velo-Verfügbarkeits-Tracker mit Prognose für **nextbike Luzern**, als
 Cloudflare Worker (TypeScript) mit Cron Trigger und D1-Datenbank. Läuft komplett im Free Plan.
 
-- alle 5 Minuten: aktuellen Stand holen und speichern
-  - pro eigener Station: Velos total, davon E-Bikes, freie Plätze
-  - zusätzlich ein kompakter Snapshot **aller ~110 Luzerner Stationen** (≈1.5 KB) für spätere
-    Analysen (Verteilung, Umverteilung, Tagesgänge)
+- **jede Minute** (nachts 01–05 Uhr alle 5 Min) den Stand des ganzen Luzerner Netzes holen und
+  **nur die Änderungen** speichern: Bestände aller ≈ 107 Stationen und die Bewegung **jedes einzelnen
+  Velos** (Ausleihe, Rückgabe, Umverteilung). Alle 6 h ein vollständiger Keyframe.
+- Daraus lassen sich offline minutengenaue Stationsverläufe, alle Velobewegungen und **Fahrten**
+  (Start → Ziel, Dauer, Distanz, Umverteilungs-Hinweis) rekonstruieren (`npm run export`).
+- pro eigener Station alle 5 Min eine Beobachtung (Velos, E-Bikes, freie Plätze) für die Prognose
 - Prognose: Wie wahrscheinlich steht zu Uhrzeit X an Station Y mindestens ein Velo?
 - HTTP-Endpunkte für Statusseite (Handy-Lesezeichen), Prognose, Planung (Morgenbriefing) und CSV-Export
 
@@ -21,7 +23,7 @@ Cloudflare Worker (TypeScript) mit Cron Trigger und D1-Datenbank. Läuft komplet
 5. [Lokal entwickeln und Cron simulieren](#lokal-entwickeln-und-cron-simulieren)
 6. [Daten exportieren und analysieren](#daten-exportieren-und-analysieren)
 7. [Verbrauch gegen die Free-Limits](#verbrauch-gegen-die-free-limits)
-8. [Alternativen zu Cloudflare](#alternativen-zu-cloudflare)
+8. [Velo-Tracking und Takt](#velo-tracking-und-takt)
 9. [Datenmodell](#datenmodell)
 
 ---
@@ -72,6 +74,12 @@ Beobachtungen im selben Slot **±1 Slot** (also ±15 Min, auch über Mitternacht
 Bei weniger als **5** Beobachtungen kommt `"status": "zu_wenig_daten"` statt einer geratenen Zahl.
 Nach einer Woche Betrieb gibt es pro Slot ≈ 9 Beobachtungen (3 Slots × 3 Läufe), nach 8 Wochen ≈ 70.
 
+### Velo-Tracking (Überblick)
+
+Jeder Abruf wird mit dem vorherigen Zustand (Tabelle `state`, 1 Zeile) verglichen. Ins Log (`log`)
+kommt nur, was sich geändert hat. Bleibt alles gleich, wird keine Log-Zeile geschrieben. Details und die
+Begründung für Takt und Nachtmodus siehe [Velo-Tracking und Takt](#velo-tracking-und-takt).
+
 ### Robustheit
 
 - Feed nicht erreichbar / kein JSON / falsche Struktur / weniger als 20 Stationen → **nichts wird geschrieben**,
@@ -79,8 +87,10 @@ Nach einer Woche Betrieb gibt es pro Slot ≈ 9 Beobachtungen (3 Slots × 3 Läu
 - Ein Retry nach 1.5 s, Timeout 10 s.
 - Unplausible Werte (negativ, kein Integer, > 500) → diese Station wird in diesem Lauf ausgelassen.
 - Station fehlt oder ist in Wartung → Lücke statt Null-Zeile. Die Statistik zählt nur vorhandene Beobachtungen.
-- Zeitstempel = tatsächlicher Abrufzeitpunkt, auf 5 Min abgerundet. Verspätete Läufe landen im richtigen
-  Slot, doppelte Läufe im selben 5-Min-Fenster werden per Primärschlüssel ignoriert.
+- Zeitstempel = tatsächlicher Abrufzeitpunkt, auf die Minute abgerundet (obs: auf 5 Min). Verspätete Läufe landen
+  im richtigen Slot. Doppelte Auslösungen werden übersprungen, ohne den Feed abzurufen.
+- Fällt ein Abruf aus, bleibt der alte Zustand stehen. Das nächste Delta umfasst dann die ganze Lücke
+  (`prev_ts` zeigt, wie lang sie war). Es geht keine Bewegung verloren, nur die Zeitauflösung ist dort gröber.
 - Tägliche Wartung läuft im selben Cron, sobald es in Zürich ≥ 03:00 ist und heute noch keine lief.
   Ein verpasster Lauf wird also beim nächsten Cron nachgeholt. Die Wartung läuft als eine Transaktion
   (verdichten + löschen), es kann also nichts doppelt gezählt werden oder verloren gehen.
@@ -151,9 +161,9 @@ npx wrangler secret put API_TOKEN
 npm run deploy
 ```
 
-Ausgabe: `https://nextbike-predict.<subdomain>.workers.dev`. Ab jetzt läuft der Cron alle 5 Minuten.
+Ausgabe: `https://nextbike-predict.<subdomain>.workers.dev`. Ab jetzt läuft der Cron jede Minute (nachts alle 5 Min).
 
-**8. Prüfen** (nach ≤ 5 Minuten)
+**8. Prüfen** (nach 1–2 Minuten)
 
 ```bash
 curl -H "Authorization: Bearer $TOKEN" https://nextbike-predict.<subdomain>.workers.dev/now
@@ -184,7 +194,7 @@ export TOKEN=<dein-token>
 | `GET /now` | aktueller Stand der eigenen Stationen (aus dem letzten Cron-Lauf) |
 | `GET /predict?station=<id\|alias>&at=<…>` | Wahrscheinlichkeit, Ø Velos, n |
 | `GET /plan?at=<…>[&dir=start\|ziel]` | Empfehlung Stamm- vs. Ausweichstation |
-| `GET /export?table=obs\|agg\|snap\|stations[&cursor=…][&limit=…]` | CSV-Export, seitenweise |
+| `GET /export?table=log\|bikes\|stations\|obs\|agg\|snap[&cursor=…][&limit=…]` | CSV-Export, seitenweise |
 
 `at` akzeptiert:
 - `HH:MM` → heute, Zürcher Zeit
@@ -288,8 +298,8 @@ curl -i "$URL/now"
    ```
 
 Neue Stationen starten bei 0 Beobachtungen. Alte Daten entfernter Stationen bleiben erhalten und stören nicht.
-Da die Netz-Snapshots alle Stationen enthalten, lässt sich die Historie einer neuen Station auch
-nachträglich aus `snap` rekonstruieren (z. B. in der Offline-Analyse).
+Da das Änderungs-Log alle Stationen enthält, lässt sich die Historie einer neuen Station auch
+nachträglich aus dem Änderungs-Log (`station_changes.csv` des Exports) rekonstruieren.
 
 ---
 
@@ -310,7 +320,8 @@ Inhalt der lokalen D1 sowie `/now` und `/plan`):
 npm run simulate-cron
 ```
 
-Offline mit dem Feed-Ausschnitt aus `test/fixtures/` und mehreren Läufen:
+Offline mit dem Feed-Ausschnitt aus `test/fixtures/` und mehreren Läufen (zwischen den Läufen wird je 61 s
+gewartet, weil höchstens 1 Abruf pro Minute fällig ist):
 
 ```bash
 FIXTURE=1 RUNS=3 npm run simulate-cron
@@ -325,7 +336,7 @@ npm run dev
 Dann `http://localhost:8787/?token=<API_TOKEN aus .dev.vars>` öffnen, oder einen Cron-Lauf auslösen:
 
 ```bash
-curl "http://localhost:8787/__scheduled?cron=*/5+*+*+*+*"
+curl "http://localhost:8787/__scheduled?cron=*+*+*+*+*"
 ```
 
 **Tests und Typprüfung** (vitest, ohne Netzwerk; SQL wird gegen echtes SQLite (`node:sqlite`) mit den Migrations getestet):
@@ -339,14 +350,16 @@ npm run typecheck
 ```
 
 Die Tests decken ab: Feed-Parsing anhand eines echten Feed-Ausschnitts, Zeitzonen und Slots (gegen
-`Intl` über 7 Jahre inkl. aller DST-Wechsel), Prognose und Empfehlung, Cron-Idempotenz, Feed-Ausfälle,
-die Verdichtung (Prognose vor und nach der Verdichtung identisch), Auth (401 ohne D1-Zugriff), Cache und Export-Paging.
+`Intl` über 7 Jahre inkl. aller DST-Wechsel), Prognose und Empfehlung, Takt/Nachtmodus, Delta- und Keyframe-Logik,
+Velo-Bewegungen, Cron-Idempotenz, Feed-Ausfälle (Lücken), die Verdichtung (Prognose vor und nach der Verdichtung
+identisch), Grössen-Schutz, Auth (401 ohne D1-Zugriff), Cache, Export-Paging und die Rekonstruktion von Fahrten
+von Cron-Lauf bis CSV (auch über eine Keyframe-Minute hinweg).
 
 ---
 
 ## Daten exportieren und analysieren
 
-**Variante A: Export-Script** (inkrementell, gut für regelmässige Backups):
+**Variante A: Export-Script** (inkrementell, empfohlen, z. B. einmal pro Woche):
 
 ```bash
 NEXTBIKE_URL=$URL NEXTBIKE_TOKEN=$TOKEN npm run export
@@ -356,14 +369,25 @@ Schreibt nach `./export/` (per `.gitignore` ausgeschlossen):
 
 | Datei | Inhalt |
 |---|---|
-| `obs.csv` | Rohbeobachtungen eigener Stationen (letzte 60 Tage) |
-| `agg.csv` | verdichtete Statistik (Station × Wochen-Slot, ältere Daten) |
-| `stations.csv` | alle Stationen mit Name, Nummer, Koordinaten |
-| `snap.csv` | Netz-Snapshots roh (`data` = JSON `[[uid, bikes, ebikes], …]`; ein 4. Element `0` heisst inaktiv) |
-| `snap_long.csv` | Snapshots im Langformat `ts, zeit_utc, uid, bikes, ebikes, active` – direkt für pandas/R |
+| `trips.csv` | **Fahrten**: `bike, type, start_ts, start_uid/lat/lng, end_ts, end_uid/lat/lng, duration_min, distance_m, direct, arrivals_same_minute` |
+| `bike_events.csv` | jede Bewegung jedes Velos: `ts, prev_ts, bike, from_uid/lat/lng, to_uid/lat/lng` (leer = nicht sichtbar) |
+| `station_changes.csv` | jede Bestandsänderung jeder Station: `ts, uid, bikes, ebikes, booked, active` |
+| `log.csv` | Änderungs-Log roh (JSON) |
+| `stations.csv`, `bikes.csv` | Stammdaten: Name, Koordinaten, Velotyp |
+| `obs.csv`, `agg.csv` | Prognose-Daten der eigenen Stationen |
+| `snap.csv`, `snap_long.csv` | alte v1-Snapshots, falls vorhanden |
 
-`snap.csv` und `snap_long.csv` werden bei jedem Aufruf nur ergänzt. Tipp: einmal im Monat laufen
-lassen, dann hast du die Rohdaten unbegrenzt lokal, unabhängig von der Aufbewahrung in D1.
+Die Log-Dateien werden bei jedem Aufruf nur ergänzt (Zwischenstand in `export/.reconstruct-state.json`).
+So hast du die Rohdaten unbegrenzt lokal, unabhängig von der Aufbewahrung in D1.
+
+So liest du die Fahrten:
+- `direct = 0`: Das Velo verschwand an A (ausgeliehen) und tauchte später an B auf. `start_ts` ist der erste
+  Abruf, in dem es fehlte. Die Dauer ist also auf ±1 Minute genau (nachts ±5 Min).
+- `direct = 1`: Das Velo war zwischen zwei Abrufen direkt von A nach B gewechselt. Das ist eine sehr kurze
+  Fahrt oder eine Umverteilung.
+- `arrivals_same_minute ≥ 3`: Mehrere Velos kamen in derselben Minute an derselben Station an. Das spricht
+  stark für einen Umverteilungs-Transporter.
+- Sehr lange Fahrten (Stunden bis Tage) sind meist Werkstatt oder Depot.
 
 **Variante B: Ganze DB als SQL-Dump:**
 
@@ -371,78 +395,120 @@ lassen, dann hast du die Rohdaten unbegrenzt lokal, unabhängig von der Aufbewah
 npx wrangler d1 export nextbike --remote --output=nextbike.sql
 ```
 
-**Variante C: Im Browser** über die Download-Links unten auf der Statusseite (je eine Seite; Snapshots der letzten 24 h).
+**Variante C: Im Browser** über die Download-Links unten auf der Statusseite (Log der letzten 24 h, Stammdaten).
 
-Ideen für Analysen: Tagesgang pro Station, Netto-Zu-/Abfluss pro Station und Stunde (Differenzen
-aufeinanderfolgender Snapshots), Umverteilungsfahrten erkennen (viele Velos verschwinden an einer Station
-und tauchen gleichzeitig an einer anderen auf), Anteil E-Bikes über die Zeit, leere/volle Stationen pro Wochentag.
+Ideen für Analysen: Tagesgang pro Station, Netto-Zu-/Abfluss pro Station und Stunde, Quelle-Ziel-Matrix der
+Fahrten, typische Fahrdauern, Auslastung einzelner Velos, E-Bike-Anteil, Umverteilungsmuster (wann, wohin,
+wie viele), leere Stationen pro Wochentag.
+
+---
+
+## Velo-Tracking und Takt
+
+**Warum jede Minute?** Bei 5 Minuten verschwimmen kurze Fahrten (eine Fahrt Bundesplatz → Bahnhof dauert
+oft < 5 Min), und Umverteilungen sind schwer von normalen Fahrten zu trennen. 1 Minute ist der kleinste
+Cron-Takt und gibt Fahrdauern auf ±1 Min genau.
+
+**Lässt sich nachts sparen?** Ja, und das ist umgesetzt: Von 01 bis 05 Uhr wird nur alle 5 Minuten
+abgerufen. Ehrlich gesagt bringt das aber weniger, als man denkt, weil die Delta-Speicherung den
+grösseren Effekt hat:
+
+- Die Aufrufe sind nicht das Limit: 1 440 Cron-Auslösungen pro Tag sind 1.4 % von 100 000.
+- Die knappen Ressourcen sind D1-Writes und Speicherplatz. Wenn sich nichts ändert (nachts der Normalfall),
+  wird ohnehin keine Log-Zeile geschrieben, nur der Zustand (1 Write).
+- Der Nachtmodus spart so ≈ 190 Abrufe, ≈ 190 Writes und etwas CPU pro Tag. Takt und Nachtfenster
+  stellst du in `src/config.ts` ein (`DAY_INTERVAL_MIN`, `NIGHT_INTERVAL_MIN`, `NIGHT_FROM_H`, `NIGHT_TO_H`).
+
+**Speicherformat** (`log`, 1 Zeile pro Abruf mit Änderungen):
+
+```
+kind 'D', st = [[uid, verfügbar, E, reserviert, aktiv], …]   nur geänderte Stationen
+          bk = [["401197", 3024956, 0], …]                  Velo, von, nach
+               Ort = Station-uid | [lat, lng] (frei abgestellt) | 0 (nicht sichtbar = ausgeliehen/Depot)
+kind 'K'  alle 6 h: kompletter Zustand (≈ 9 KB). Damit lässt sich ab jedem Keyframe rekonstruieren,
+          und ein verlorenes Delta wirkt sich höchstens bis zum nächsten Keyframe aus.
+```
+
+Am echten Feed gemessen (Montagnachmittag): 1–12 Velobewegungen pro Minute, Delta ≈ 70–400 Byte.
+
+Velotypen (`bikes.type`) kommen aus einem Vollabruf mit Velo-Liste, 1× täglich während der Wartung.
+Sonst wird die schlanke Variante (`bikes=false`, 51 KB) abgerufen, die die Velonummern ebenfalls enthält.
 
 ---
 
 ## Verbrauch gegen die Free-Limits
 
-Gemessen bzw. abgeschätzt für 5 eigene Stationen und ≈ 110 Stationen im Netz:
+Gemessen (lokal) bzw. abgeschätzt für ≈ 107 Stationen, ≈ 350 Velos, 5 eigene Stationen:
 
 | Ressource | Free-Limit | Verbrauch | Anteil |
 |---|---|---|---|
-| Cron Triggers | 5 pro Account | 1 | – |
-| Requests | 100 000 / Tag | 288 Cron-Läufe + eigene Aufrufe (≈ 50–200) | < 1 % |
-| CPU pro Aufruf | 10 ms | Cron: JSON-Parse + Auswertung ≈ 0.3 ms (lokal gemessen), realistisch 1–3 ms. HTTP: < 2 ms | ok |
-| D1 Rows written | 100 000 / Tag | 6 pro Lauf × 288 = 1 728; Wartung ≈ 2 300 (1 440 obs löschen, ≤ 480 agg-Upserts, 288 alte Snapshots, ≈ 115 Stammdaten) → **≈ 4 000** | ≈ 4 % |
-| D1 Rows read | 5 Mio. / Tag | Cron 288; Wartung ≈ 2 × 86 400 (Scan der 60-Tage-Rohdaten); `/predict` ≈ 100; Statusseite ≈ 3 500 → **≈ 200 000** bei normaler Nutzung | ≈ 4 % |
-| D1 Speicher | 500 MB pro DB (5 GB total) | obs ≈ 86 000 Zeilen ≈ 3 MB; Snapshots ≈ 430 KB/Tag ≈ **160 MB/Jahr** | ≈ 35 % nach 1 Jahr |
+| Cron Triggers | 5 pro Account | 1 (`* * * * *`) | – |
+| Requests | 100 000 / Tag | 1 440 Cron-Auslösungen + eigene Aufrufe | ≈ 1.5 % |
+| CPU pro Aufruf | 10 ms | Abruf-Lauf (Feed 51 KB + Zustand 8 KB parsen, Diff, Zustand schreiben): **≈ 0.7 ms warm, ≈ 2.8 ms kalt** (lokal gemessen); übersprungene Auslösung < 0.5 ms; HTTP < 2 ms | ok |
+| D1 Rows written | 100 000 / Tag | ≈ 1 250 Abrufe × (1 Zustand + 1 Log-Zeile, falls Änderung) ≈ 2 400; obs 288 × 5 = 1 440; Wartung ≈ 2 400 (obs verdichten/löschen, ≈ 110 Stationen, ≈ 350 Velos) → **≈ 6 300** | ≈ 6 % |
+| D1 Rows read | 5 Mio. / Tag | 1 440 (Zustand je Auslösung); Wartung ≈ 175 000 (Scan der 60-Tage-obs); Statusseite ≈ 3 500 → **≈ 180 000** | ≈ 4 % |
+| D1 Speicher | 500 MB pro DB | Log ≈ 0.3–0.4 MB/Tag ≈ **130 MB/Jahr**; obs ≈ 3 MB konstant | ≈ 3 Jahre bis zur Schutzgrenze |
 
 Designentscheide, die das klein halten:
 
 - Gefilterter Abruf (`city=126&bikes=false`, 51 KB statt Weltfeed mit mehreren MB).
-- `obs` hat den Primärschlüssel `(station_id, wslot, ts)` mit `WITHOUT ROWID`. Es gibt keinen Zusatzindex,
-  also kostet jeder Insert genau 1 geschriebene Zeile, und Prognose-Abfragen sind reine Range-Scans auf dem Schlüssel.
-- Das Netz wird als **eine** Snapshot-Zeile pro Lauf gespeichert statt ≈ 110 Zeilen. Pro Station und Lauf
-  einzeln wären das ≈ 32 000 Writes/Tag plus Verdichtung, zu knapp am Limit.
-- Stammdaten nur 1× täglich, als ein einziges Statement (`json_each`).
+- **Delta statt Snapshot**: Pro Minute ein vollständiger Stand aller Stationen und Velos wären ≈ 9 KB, also
+  ≈ 4.5 GB pro Jahr. Mit Deltas ist es ≈ 1/30 davon.
+- Ein Abruf = ein D1-Batch (Transaktion). Der Zustand ist 1 Zeile, statt Hunderte Zeilen pro Station/Velo zu
+  aktualisieren (das wären > 400 000 Writes/Tag).
+- `obs` hat den Primärschlüssel `(station_id, wslot, ts)` mit `WITHOUT ROWID`, ohne Zusatzindex.
+  Prognose-Abfragen sind reine Range-Scans auf dem Schlüssel.
+- Stamm- und Velodaten nur 1× täglich, je als ein einziges Statement (`json_each`).
 - Antwort-Cache 60 s: Isolate-Speicher, zusätzlich die Cache API. **Achtung:** Die Cache API wirkt nur auf einer
   eigenen Domain, auf `*.workers.dev` ist sie ein No-Op. Der Speicher-Cache wirkt trotzdem.
-- Export seitenweise (max. 5 000 Zeilen bzw. 288 Snapshots pro Request).
+- Export seitenweise (max. 5 000 Zeilen bzw. 1 440 Log-Zeilen pro Request).
 
-Stellschrauben in `wrangler.toml`: `SNAPSHOT_RETENTION_DAYS` (Standard 365, `0` = für immer, dann nach ≈ 3 Jahren
-an der 500-MB-Grenze; vorher exportieren) und `RAW_RETENTION_DAYS` (Standard 60).
+Stellschrauben in `wrangler.toml`:
+
+| Variable | Standard | Bedeutung |
+|---|---|---|
+| `LOG_RETENTION_DAYS` | `0` (für immer) | Aufbewahrung des Änderungs-Logs |
+| `DB_SIZE_LIMIT_MB` | `450` | Schutz: Wird die DB grösser, löscht die tägliche Wartung die ältesten 30 Tage Log. Vorher exportieren! |
+| `RAW_RETENTION_DAYS` | `60` | obs → agg verdichten |
+| `SNAPSHOT_RETENTION_DAYS` | `365` | alte v1-Snapshots |
+
+Die DB-Grösse zeigt die Statusseite (`DB … MB / 500 MB`) und `/now` (`network.db_mb`).
 
 Seit 09/2026 setzt Cloudflare die D1-Tageslimits hart durch: Bei Überschreitung schlagen Queries bis 00:00 UTC
 fehl. Der Cron loggt das dann als Fehler und schreibt nichts. Bei den Werten oben ist viel Reserve.
 
----
-
-## Alternativen zu Cloudflare
-
-Cloudflare Workers + D1 passt hier am besten: echter 5-Minuten-Cron, SQL-Datenbank, HTTP-Endpunkte,
-alles gratis und ohne Server. Geprüfte Alternativen:
-
-- **GitHub Actions (Cron) + CSV im Repo:** gratis, aber `schedule` ist unzuverlässig (oft 10–30 Min Verspätung,
-  bei Last ausgelassen) und es gibt keine HTTP-API für `/plan`. Für die Datensammlung allein geht es, für die Prognose nicht.
-- **Raspberry Pi / eigener Rechner mit SQLite:** volle Kontrolle und unbegrenzte Rohdaten, aber er muss 24/7 laufen.
-- **Supabase/Neon (Postgres) + externer Cron:** mehr SQL-Komfort, aber zwei Dienste und Free-Projekte pausieren bei Inaktivität.
-
-Erweiterung für später: Das Feld `bike_numbers` (Velonummern pro Station) ist im Feed enthalten. Mit ihm könnte man
-einzelne Velos verfolgen und so Fahrten und Umverteilung exakt rekonstruieren. Das kostet ≈ 3 KB mehr pro Snapshot
-(≈ 300 MB/Jahr, dann besser kürzere Aufbewahrung und regelmässiger Export).
+Mehr Daten ohne Limits und eine Analyse-GUI bietet die Variante [`../raspberry-pi`](../raspberry-pi/README.md).
 
 ---
 
 ## Datenmodell
 
-Siehe `migrations/0001_init.sql`.
+Siehe `migrations/0001_init.sql` und `migrations/0002_tracking.sql`.
 
 | Tabelle | Inhalt |
 |---|---|
-| `obs` | `station_id, wslot, ts, bikes, ebikes, free_racks`. Rohdaten eigener Stationen, 60 Tage |
-| `agg` | `station_id, wslot, n, n_avail, sum_bikes, n_ebike_avail, sum_ebikes, first_ts, last_ts`. Ältere Rohdaten verdichtet |
-| `snap` | `ts, n_stations, total_bikes, total_ebikes, free_floating, booked, data`. Netz-Snapshot pro Lauf |
+| `log` | `ts, prev_ts, kind, n_st, n_bk, st, bk`. Änderungs-Log (Stationen + Velos), Keyframes alle 6 h |
+| `state` | 1 Zeile: aktueller Zustand (Basis für Delta und `/now`), letzte Wartung, DB-Grösse |
+| `bikes` | `number, type, first_seen, last_seen` |
 | `stations` | `uid, number, name, lat, lng, place_type, first_seen, last_seen` |
-| `meta` | `last_maint`, `last_error` |
+| `obs` | `station_id, wslot, ts, bikes, ebikes, free_racks`. Prognose-Rohdaten eigener Stationen, 60 Tage |
+| `agg` | `station_id, wslot, n, n_avail, sum_bikes, n_ebike_avail, sum_ebikes, first_ts, last_ts`. Ältere obs verdichtet |
+| `snap` | v1-Snapshots (wird nicht mehr beschrieben) |
+| `meta` | `last_error` |
 
-- `ts` = Unix-Sekunden UTC, auf 5 Minuten abgerundet.
+- `ts` = Unix-Sekunden UTC (log: auf Minute, obs: auf 5 Minuten abgerundet).
 - `wslot` = lokaler Wochen-Slot (Europe/Zurich): `Wochentag (Mo=0 … So=6) × 96 + Stunde × 4 + Minute ÷ 15`.
 - `bikes` = `bikes_available_to_rent` (ohne reservierte Velos).
+
+**Update von v1:** Neue Migration anwenden und deployen, dann steht der Cron automatisch auf jede Minute:
+
+```bash
+npm run db:migrate:remote
+```
+
+```bash
+npm run deploy
+```
 
 Projektstruktur:
 
@@ -451,7 +517,8 @@ src/
   index.ts    Einstieg: fetch (Auth → Routing) + scheduled (Cron)
   config.ts   Feed-URL, city-ID, Stationen, Schwellwerte
   feed.ts     Feed abrufen + validieren + parsen
-  cron.ts     Cron-Lauf + Entscheidung über tägliche Wartung
+  cron.ts     Cron-Lauf: Takt/Nachtmodus, Delta/Keyframe, obs, tägliche Wartung
+  tracker.ts  Änderungserkennung Stationen + Velos (rein funktional)
   db.ts       alle D1-Queries
   time.ts     Europe/Zurich-Zeitzone + Wochen-Slots (ohne Intl)
   predict.ts  Prognose + Empfehlung
@@ -461,6 +528,6 @@ src/
   auth.ts     Token-Prüfung in konstanter Zeit
   cache.ts    60-s-Cache
 migrations/   D1-Schema
-scripts/      simulate-cron.sh, export.mjs
+scripts/      simulate-cron.sh, export.mjs, reconstruct.mjs (Log → Fahrten/Bewegungen)
 test/         vitest + Feed-Fixture + D1-Shim (node:sqlite)
 ```

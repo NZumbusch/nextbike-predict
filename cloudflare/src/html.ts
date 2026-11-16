@@ -62,7 +62,7 @@ ${d.now.network ? `<p><small>Netz: ${d.now.network.stations} Stationen · ${d.no
 <h2>Prognose: Chance auf ≥ 1 Velo</h2>
 <div class="scroll"><table><tr><th></th>${head}</tr>${progRows}</table></div>
 <h2>Daten herunterladen (CSV)</h2>
-<p class="dl"><a data-t="obs">Rohdaten eigene Stationen</a> · <a data-t="agg">Aggregate</a> · <a data-t="stations">Stationen</a> · <a data-t="snap" data-day="1">Netz-Snapshots letzte 24 h</a></p>
+<p class="dl"><a data-t="obs">Rohdaten eigene Stationen</a> · <a data-t="agg">Aggregate</a> · <a data-t="stations">Stationen</a> · <a data-t="bikes">Velos</a> · <a data-t="log" data-day="1">Änderungs-Log letzte 24 h</a></p>
 <p><small>Vollständiger Export aller Seiten: <code>npm run export</code> (siehe README).</small></p>
 <script>
 (function(){var t=new URLSearchParams(location.search).get("token")||"";
