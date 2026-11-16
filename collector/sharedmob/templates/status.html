@@ -63,12 +63,14 @@ Die Lücken landen als Tabelle <code>gap</code> im Archiv, damit die Analyse „
 
 <h2>Anbieter (letzte 24 h)</h2>
 <p><small>Identität: <b>id</b> = Fahrzeug-ID wird verfolgt (bei nextbike direkt: feste Velonummer ⇒ exakte Fahrten). <b>pos</b> = Anbieter wechselt IDs laufend ⇒ Verfolgung über die Position (Abfahrten/Ankünfte, keine Fahrtzuordnung).
-„neue IDs“ = Anteil neuer IDs pro Abruf – hoch heisst: IDs rotieren (GBFS-Datenschutz).</small></p>
+<b>ID kommt zurück</b> = Anteil der Abfahrten, bei denen das Fahrzeug später mit <i>derselben</i> ID wieder auftaucht – das ist der Massstab, ob sich Einzelfahrten exakt rekonstruieren lassen
+(nahe 0 = IDs rotieren nach jeder Fahrt; Werte steigen in den ersten Stunden, weil laufende Fahrten noch nicht zurück sind). „neue IDs/Abruf“ hoch = komplette Neuvergaben.</small></p>
 <div class="scroll card"><table>
-<tr><th>Anbieter</th><th>Quelle</th><th>Identität</th><th class="n">Fahrzeuge</th><th class="n">Zustandswechsel</th><th class="n">neue IDs/Abruf</th><th class="n">Fahrten (gleiche ID)</th><th>letzte Änderung</th></tr>
+<tr><th>Anbieter</th><th>Quelle</th><th>Identität</th><th class="n">Fahrzeuge</th><th class="n">Abfahrten</th><th class="n">ID kommt zurück</th><th class="n">neue IDs/Abruf</th><th class="n">Fahrten (gleiche ID)</th><th>letzte Änderung</th></tr>
 {% for p in s.providers %}
 <tr><td><a href="provider/{{ p.source }}/{{ p.provider }}">{{ p.provider }}</a> <small>{{ p.name or '' }}</small></td><td><small>{{ p.source }}</small></td><td><span class="tag">{{ p.mode }}</span></td>
-<td class="n">{{ p.n|num }}</td><td class="n">{{ p.opened|num }}</td>
+<td class="n">{{ p.n|num }}</td><td class="n">{{ p.departed|num }}</td>
+<td class="n {{ 'ok' if p.departed and (p.returned or 0) / p.departed > 0.5 else '' }}">{{ ((p.returned or 0) / p.departed)|pct if p.departed else '–' }}</td>
 <td class="n">{{ ((p.new_ids or 0) / p.polls / p.n)|pct if p.polls and p.n else '–' }}</td>
 <td class="n">{{ p.trips|num }}</td>
 <td class="{{ 'warn' if p.last_change and s.now - p.last_change > 6 * 3600 else '' }}">{{ p.last_change|dt }}</td></tr>

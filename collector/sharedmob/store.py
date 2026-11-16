@@ -73,6 +73,8 @@ CREATE TABLE IF NOT EXISTS poll (
 CREATE TABLE IF NOT EXISTS provider_stat (
   ts INTEGER NOT NULL, source TEXT NOT NULL, provider TEXT NOT NULL, id_mode TEXT,
   n_vehicles INTEGER, n_new_ids INTEGER, n_gone_ids INTEGER, n_opened INTEGER, n_closed INTEGER, n_polls INTEGER,
+  n_departed INTEGER DEFAULT 0,  -- Abfahrten (Fahrzeug verschwunden)
+  n_returned INTEGER DEFAULT 0,  -- Wiederauftauchen mit gleicher ID ⇒ Fahrten exakt rekonstruierbar
   PRIMARY KEY (source, provider, ts)
 ) WITHOUT ROWID;
 
@@ -123,7 +125,23 @@ def connect(path: Path | str, readonly: bool = False) -> sqlite3.Connection:
         conn.execute("PRAGMA query_only=ON")
     else:
         conn.executescript(SCHEMA)
+        migrate(conn)
     return conn
+
+
+# Spalten, die nach der ersten Version dazukamen: (Tabelle, Spalte, Definition)
+_ADDED_COLUMNS = [
+    ("provider_stat", "n_departed", "INTEGER DEFAULT 0"),
+    ("provider_stat", "n_returned", "INTEGER DEFAULT 0"),
+]
+
+
+def migrate(conn: sqlite3.Connection) -> None:
+    """Fehlende Spalten in bestehenden Datenbanken ergänzen (Updates ohne Datenverlust)."""
+    for table, col, decl in _ADDED_COLUMNS:
+        have = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+        if col not in have:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
 
 
 class Store:
@@ -185,7 +203,8 @@ class Store:
                     f"""INSERT INTO provider_stat ({','.join(P_COLS)}, n_polls) VALUES ({','.join('?' * len(P_COLS))}, 1)
                         ON CONFLICT(source, provider, ts) DO UPDATE SET id_mode = excluded.id_mode, n_vehicles = excluded.n_vehicles,
                           n_new_ids = n_new_ids + excluded.n_new_ids, n_gone_ids = n_gone_ids + excluded.n_gone_ids,
-                          n_opened = n_opened + excluded.n_opened, n_closed = n_closed + excluded.n_closed, n_polls = n_polls + 1""",
+                          n_opened = n_opened + excluded.n_opened, n_closed = n_closed + excluded.n_closed, n_polls = n_polls + 1,
+                          n_departed = n_departed + excluded.n_departed, n_returned = n_returned + excluded.n_returned""",
                     [(bucket, *r[1:]) for r in ch.provider_stats],
                 )
             if snap is not None:

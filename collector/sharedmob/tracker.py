@@ -92,7 +92,8 @@ S_COLS = ("id", "source", "provider", "station_id", "bikes", "docks", "is_instal
           "start_ts", "start_prev_ts")
 T_COLS = ("source", "provider", "vehicle_id", "vehicle_type", "kind", "dep_ts", "dep_next_ts", "arr_prev_ts", "arr_ts",
           "from_lat", "from_lon", "from_station", "to_lat", "to_lon", "to_station", "distance_m", "from_spell", "to_spell")
-P_COLS = ("ts", "source", "provider", "id_mode", "n_vehicles", "n_new_ids", "n_gone_ids", "n_opened", "n_closed")
+P_COLS = ("ts", "source", "provider", "id_mode", "n_vehicles", "n_new_ids", "n_gone_ids", "n_opened", "n_closed",
+          "n_departed", "n_returned")  # Abfahrten (gone) / davon später mit gleicher ID zurück
 
 
 class Tracker:
@@ -181,7 +182,7 @@ class Tracker:
             else:
                 for v in items:
                     cur.setdefault((prov, v.vehicle_id), (v, "id"))
-            ch.provider_stats.append([ch.obs_ts, self.source, prov, mode, len(items), new_ids, gone_ids, 0, 0])
+            ch.provider_stats.append([ch.obs_ts, self.source, prov, mode, len(items), new_ids, gone_ids, 0, 0, 0, 0])
         return cur
 
     def _position_keys(self, prov: str, items: list[VehicleObs]) -> dict[VKey, tuple[VehicleObs, str]]:
@@ -278,6 +279,8 @@ class Tracker:
                 del self.open_v[key]
                 if key[0] in stats:
                     stats[key[0]][8] += 1
+                    if reason == "gone":
+                        stats[key[0]][9] += 1
                 continue
             v, mode = hit
             d = haversine_m(o.obs.lat, o.obs.lon, v.lat, v.lon)
@@ -301,6 +304,7 @@ class Tracker:
             ref = self.recent.pop(key, None) if mode == "id" else None
             if ref is None:
                 continue
+            stats[key[0]][10] += 1  # gleiche ID ist zurück ⇒ Fahrt rekonstruierbar
             d = haversine_m(ref.lat, ref.lon, v.lat, v.lon)
             gap = ts - ref.end_ts
             a = VehicleObs(key[0], key[1], ref.lat, ref.lon, ref.vehicle_type, ref.station_id)

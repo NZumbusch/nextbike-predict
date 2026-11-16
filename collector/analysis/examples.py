@@ -2,7 +2,7 @@
 
 Grundlage für "wiederkehrende vs. überraschende Fahrten":
   - Exakte Fahrten (Tabelle trip) gibt es für Anbieter mit stabiler ID (nextbike direkt, ggf. weitere,
-    siehe Statusseite "Fahrten (gleiche ID)").
+    siehe Statusseite "ID kommt zurück").
   - Für alle Anbieter gibt es Abfahrten (departure) und Ankünfte (arrival) mit Ort und Zeit.
 """
 import sys

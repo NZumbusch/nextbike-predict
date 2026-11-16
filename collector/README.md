@@ -29,7 +29,7 @@ Am echten Feed gemessen (11/2026):
 |---|---|---|
 | Abdeckung | 46 Anbieter, ganze Schweiz | nextbike Schweiz + invia (≈ 480 Stationen, ≈ 1 400 Velos) |
 | Fahrzeug-ID | **wechselt nach jeder Fahrt** (GBFS-Datenschutzregel); Bird wechselt sogar jede Minute alle IDs | **feste Velonummer** |
-| Einzelfahrten (Start → Ziel) | nur bei Anbietern ohne ID-Wechsel. Die Statusseite zeigt das pro Anbieter (Spalte „neue IDs/Abruf“) | **exakt** |
+| Einzelfahrten (Start → Ziel) | nur bei Anbietern ohne ID-Wechsel. Die Statusseite zeigt das pro Anbieter (Spalte „ID kommt zurück“). Im Test: nur pickebike (≈ 70 %); velospot, Voi, Bolt, Dott u. a. rotieren nach jeder Fahrt | **exakt** |
 | Abfahrten und Ankünfte mit Ort und Zeit | ja, für alle | ja |
 | Stationsbestände | ja | ja, inkl. Velotypen |
 

@@ -1,5 +1,5 @@
 from sharedmob.model import Snapshot, StationObs, VehicleObs
-from sharedmob.tracker import S_COLS, T_COLS, V_COLS, Tracker, haversine_m
+from sharedmob.tracker import P_COLS, S_COLS, T_COLS, V_COLS, Tracker, haversine_m
 
 T0 = 1_800_000_000
 
@@ -183,3 +183,13 @@ def test_position_mode_two_vehicles_same_spot():
     t.apply(snap(T0, [V("1", prov="q"), V("2", prov="q")]))
     ch = t.apply(snap(T0 + 60, [V("3", prov="q", lat=47.00001), V("4", prov="q")]))
     assert not ch.v_open and not ch.v_close
+
+
+def test_return_rate_counters():
+    t = Tracker("src")
+    t.apply(snap(T0, [V("a"), V("b")]))
+    ch = t.apply(snap(T0 + 60, []))
+    st = {r[2]: dict(zip(P_COLS, r)) for r in ch.provider_stats} if ch.provider_stats else {}
+    ch = t.apply(snap(T0 + 600, [V("a", lat=47.01), V("c")]))  # a zurück (gleiche ID), c neu (rotierte ID)
+    row = dict(zip(P_COLS, ch.provider_stats[0]))
+    assert row["n_returned"] == 1 and row["n_opened"] == 2

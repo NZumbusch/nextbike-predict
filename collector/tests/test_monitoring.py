@@ -92,7 +92,7 @@ def test_watchdog_upload_disk_provider(cfg, fake):
     cfg.alerts.disk_free_pct = 101  # erzwingt "Speicher fast voll"
     # Anbieter mit 25 Fahrzeugen vor 24 h, seither nicht mehr
     with c.store.conn:
-        c.store.conn.execute("INSERT INTO provider_stat VALUES (?, 'sharedmobility', 'weg_ag', 'id', 25, 0, 0, 0, 0, 1)", (int(t - 24 * 3600),))
+        c.store.conn.execute("INSERT INTO provider_stat (ts, source, provider, id_mode, n_vehicles, n_new_ids, n_gone_ids, n_opened, n_closed, n_polls) VALUES (?, 'sharedmobility', 'weg_ag', 'id', 25, 0, 0, 0, 0, 1)", (int(t - 24 * 3600),))
     sent = Sent()
     titles = {a.title for a in Watchdog(cfg, sent, now=lambda: t).checks() if a.active}
     assert {"Upload zu Google Drive gestört", "Speicher fast voll", "Anbieter weg_ag fehlt im Feed"} <= titles

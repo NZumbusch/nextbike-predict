@@ -78,7 +78,8 @@ def create_app(cfg: Config | None = None) -> Flask:
         providers = c.execute(
             """SELECT source, provider, max(id_mode) mode,
                       (SELECT n_vehicles FROM provider_stat q WHERE q.source = p.source AND q.provider = p.provider ORDER BY ts DESC LIMIT 1) n,
-                      sum(n_opened) opened, sum(n_new_ids) new_ids, sum(n_polls) polls, max(CASE WHEN n_opened > 0 THEN ts END) last_change
+                      sum(n_opened) opened, sum(n_new_ids) new_ids, sum(n_polls) polls, max(CASE WHEN n_opened > 0 THEN ts END) last_change,
+                      sum(n_departed) departed, sum(n_returned) returned
                FROM provider_stat p WHERE ts >= ? GROUP BY source, provider ORDER BY n DESC""", (day,)).fetchall()
         trips = dict(c.execute("SELECT source || '|' || provider, count(*) FROM trip WHERE arr_ts >= ? GROUP BY 1", (day,)).fetchall())
         names = dict(c.execute("SELECT provider, name FROM provider_info").fetchall())
