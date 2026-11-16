@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>{% block title %}Velo Luzern{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body>
+<header><nav>
+  <b>🚲 nextbike Luzern</b>
+  {% set p = request.path %}
+  <a href="/" class="{{ 'on' if p == '/' }}">Übersicht</a>
+  <a href="/stations" class="{{ 'on' if p.startswith('/station') }}">Stationen</a>
+  <a href="/map" class="{{ 'on' if p == '/map' }}">Karte</a>
+  <a href="/trips" class="{{ 'on' if p.startswith('/trips') or p.startswith('/bike') }}">Fahrten</a>
+  <a href="/export" class="{{ 'on' if p.startswith('/export') }}">Daten</a>
+</nav></header>
+<main>{% block body %}{% endblock %}</main>
+</body>
+</html>

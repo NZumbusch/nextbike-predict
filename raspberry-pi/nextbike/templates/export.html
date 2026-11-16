@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Daten{% endblock %}
+{% block body %}
+<h1>Daten &amp; Backups</h1>
+<h2>Ganze Datenbank</h2>
+<p><a href="/export/nextbike.sqlite">nextbike.sqlite herunterladen</a> <small>({{ dbsize|mb }}, konsistente Kopie – direkt in pandas/R/DB Browser for SQLite öffnen)</small></p>
+
+<h2>Tabellen als CSV</h2>
+<div class="scroll"><table>
+<tr><th>Tabelle</th><th class="n">Zeilen</th><th>Download</th></tr>
+{% for t, n in counts.items() %}
+<tr><td><code>{{ t }}</code></td><td class="n">{{ n }}</td>
+<td><a href="/export/{{ t }}.csv">alles</a>{% if t not in ['stations', 'bikes'] %} · <a href="/export/{{ t }}.csv?days=1">24 h</a> · <a href="/export/{{ t }}.csv?days=7">7 Tage</a>{% endif %}</td></tr>
+{% endfor %}
+</table></div>
+
+<h2>Backups</h2>
+<p>Google Drive: {{ upload or 'noch kein Upload – rclone einrichten, siehe README' }}</p>
+<ul>{% for b in backups %}<li><a href="/backups/{{ b.name }}">{{ b.name }}</a> <small>{{ (b.stat().st_size / 1e6)|round(1) }} MB</small></li>
+{% else %}<li class="muted">Noch keine (täglich ab {{ config.NB.maintenance_hour }}:00 Uhr).</li>{% endfor %}</ul>
+
+<h2>JSON-API</h2>
+<p><small><code>/api/now</code> · <code>/api/predict?station=home&amp;at=07:45</code> · <code>/api/plan?at=07:45</code> · <code>/api/stations</code> · <code>/healthz</code></small></p>
+{% endblock %}

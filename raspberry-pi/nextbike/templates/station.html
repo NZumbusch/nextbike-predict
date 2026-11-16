@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ st.name }}{% endblock %}
+{% block body %}
+<h1>{{ st.name }}</h1>
+<p class="muted">uid {{ st.uid }} · Nr. {{ st.number }} · {% if now_t %}jetzt <b>{{ now_t[0] }}</b> Velos ({{ now_t[1] }} E-Bikes{% if now_t[2] %}, {{ now_t[2] }} reserviert{% endif %}){% else %}aktuell nicht im Feed{% endif %}
+ · <a href="/trips?station={{ st.uid }}">Fahrten</a> · <a href="/api/predict?station={{ st.uid }}">API</a></p>
+
+<h2>Bestand letzte {{ hours }} h</h2>
+<form class="inline"><label>Zeitraum <select name="h" onchange="this.form.submit()">
+{% for h in [12, 24, 48, 96, 168, 336] %}<option value="{{ h }}" {{ 'selected' if h == hours }}>{{ h // 24 ~ ' Tage' if h >= 48 else h ~ ' h' }}</option>{% endfor %}
+</select></label></form>
+<div class="card">{{ chart }}</div>
+
+<h2>Prognose nächste Stunden</h2>
+{% set rows = [(st.name, None, False, preds)] %}
+{% include "_forecast.html" %}
+
+<h2>Wochenmuster: Chance auf ≥ 1 Velo</h2>
+<div class="card">{{ heat }}<small>rot = selten ein Velo, grün = fast immer · grau = zu wenig Daten · Basis: alle 5-Min-Beobachtungen</small></div>
+
+{% if bikes_here %}
+<h2>Velos hier</h2>
+<p>{% for n, t in bikes_here %}<a href="/bike/{{ n }}">{{ n }}</a>{% if t in ['183', '371'] %} ⚡{% endif %}{{ ', ' if not loop.last }}{% endfor %}</p>
+{% endif %}
+
+<h2>Letzte Bewegungen</h2>
+<div class="scroll"><table>
+<tr><th>Zeit</th><th>Velo</th><th>Bewegung</th></tr>
+{% for e in events %}
+<tr><td>{{ e.ts|dt }}</td><td><a href="/bike/{{ e.bike }}">{{ e.bike }}</a></td>
+<td>{% if e.to_uid == st.uid %}angekommen{% if e.from_uid %} von {{ nm.get(e.from_uid, {}).get('name', e.from_uid) }}{% elif e.from_lat %} (war frei abgestellt){% endif %}
+{% else %}weg{% if e.to_uid %} → {{ nm.get(e.to_uid, {}).get('name', e.to_uid) }}{% elif e.to_lat %} → frei abgestellt{% else %} (ausgeliehen){% endif %}{% endif %}</td></tr>
+{% else %}<tr><td colspan="3" class="muted">Noch keine.</td></tr>
+{% endfor %}
+</table></div>
+{% endblock %}

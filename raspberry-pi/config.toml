@@ -1,0 +1,57 @@
+# Konfiguration nextbike-predict (Raspberry Pi). Änderungen wirken nach
+#   docker compose restart
+# Stations-IDs (uid) findest du über die Web-GUI (Seite "Stationen") oder im Feed, siehe README.
+
+[feed]
+city_id = 126                 # Luzern (Südpol/Kriens-Allmend gehören dazu)
+poll_seconds = 60             # Abruf-Takt tagsüber
+night_poll_seconds = 60       # nachts; z. B. 300 für weniger Datenvolumen
+night_from_hour = 1           # Nacht = [from, to) Zürcher Zeit
+night_to_hour = 5
+full_feed_every_minutes = 60  # Vollabruf mit Velotypen + Stammdaten
+
+[prediction]
+min_obs = 5                   # darunter: "zu wenig Daten"
+plan_threshold = 0.8          # /plan: Stammstation reicht ab dieser Wahrscheinlichkeit
+
+[maintenance]
+hour = 3                      # tägliches Backup + Aufräumen ab dieser Stunde (Zürich)
+keep_local_backups = 7        # so viele Backups bleiben lokal in data/backups
+poll_log_days = 30            # Abruf-Protokoll (Tabelle poll) so lange behalten
+
+# Eigene Stationen. group = "start" (Hinweg) oder "ziel" (Rückweg),
+# pro Gruppe genau eine Stammstation (primary = true).
+[[stations]]
+id = 3024956
+alias = "home"
+name = "Neustadtstrasse 10"
+group = "start"
+primary = true
+
+[[stations]]
+id = 39638
+alias = "moosstrasse"
+name = "Bundesplatz / Moosstrasse"
+group = "start"
+distance_m = 157
+
+[[stations]]
+id = 34397
+alias = "zentralstrasse"
+name = "Bundesplatz / Zentralstrasse 1"
+group = "start"
+distance_m = 200
+
+[[stations]]
+id = 70900
+alias = "suedpol"
+name = "Südpol / Arsenalstrasse 28"
+group = "ziel"
+primary = true
+
+[[stations]]
+id = 3024979
+alias = "messe"
+name = "Messe Allmend / Horwerstrasse"
+group = "ziel"
+distance_m = 460

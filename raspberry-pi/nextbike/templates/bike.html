@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Velo {{ b.number }}{% endblock %}
+{% block body %}
+<h1>Velo {{ b.number }}</h1>
+<p class="muted">Typ {{ {'150': 'Velo', '196': 'Velo (SMARTbike)', '183': 'E-Bike', '371': 'E-Cargobike'}.get(b.type, b.type or 'unbekannt') }}
+ · gesehen seit {{ b.first_seen|dt }}</p>
+<p>Jetzt: {% if loc is number %}an <a href="/station/{{ loc }}">{{ nm.get(loc, {}).get('name', loc) }}</a>
+{% elif loc %}frei abgestellt ({{ '%.5f'|format(loc[0]) }}, {{ '%.5f'|format(loc[1]) }})
+{% elif away %}unterwegs seit {{ away[0]|dt }} (zuletzt {{ nm.get(away[1], {}).get('name', 'frei abgestellt') if away[1] is number else 'frei abgestellt' }})
+{% else %}nicht sichtbar{% endif %}</p>
+<div class="kpis">
+  <div class="kpi"><b>{{ stats.n }}</b><span>Fahrten</span></div>
+  <div class="kpi"><b>{{ ((stats.m or 0) / 1000)|round(1) }}</b><span>km Luftlinie</span></div>
+  <div class="kpi"><b>{{ ((stats.s or 0) / 3600)|round(1) }}</b><span>h unterwegs</span></div>
+</div>
+<h2>Fahrten</h2>
+<div class="scroll"><table>
+<tr><th>Start</th><th>Von</th><th>Nach</th><th class="n">Dauer</th><th class="n">Distanz</th></tr>
+{% for t in trips %}
+<tr><td>{{ t.start_ts|dt }}</td>
+<td>{{ nm.get(t.start_uid, {}).get('name', 'frei abgestellt') if t.start_uid else 'frei abgestellt' }}</td>
+<td>{{ nm.get(t.end_uid, {}).get('name', 'frei abgestellt') if t.end_uid else 'frei abgestellt' }}</td>
+<td class="n">{{ t.duration_s|dur }}{% if t.direct %} <span class="tag">direkt</span>{% endif %}</td><td class="n">{{ (t.distance_m ~ ' m') if t.distance_m is not none else '–' }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">Noch keine.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}
